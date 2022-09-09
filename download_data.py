@@ -1,6 +1,7 @@
 '''
+I used this code snippet to retrieve waveform data and response information.
+
 :copyright:
-   The PyGLImER development team (makus@gfz-potsdam.de).
 :license:
    GNU Lesser General Public License, Version 3
    (https://www.gnu.org/copyleft/lesser.html)
@@ -8,7 +9,7 @@
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Friday, 9th September 2022 11:08:53 am
-Last Modified: Friday, 9th September 2022 11:09:58 am
+Last Modified: Friday, 9th September 2022 12:05:17 pm
 '''
 
 from obspy.clients.fdsn import Client
