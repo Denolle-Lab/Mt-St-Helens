@@ -10,7 +10,7 @@ The directory structure adheres to the one SeisMIC employs.
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Friday, 9th September 2022 03:07:42 pm
-Last Modified: Friday, 9th September 2022 03:21:17 pm
+Last Modified: Friday, 9th September 2022 04:51:47 pm
 '''
 
 import os
@@ -22,7 +22,7 @@ from pnwstore.mseed import WaveformClient
 client = WaveformClient()
 
 starts = [
-    UTCDateTime(2004, 10, 2), UTCDateTime(1972, 10, 1),
+    UTCDateTime(2004, 10, 2), UTCDateTime(1980, 1, 1),
     UTCDateTime(1985, 8, 12), UTCDateTime(1980, 6, 1)]
 
 nets = ['CC', 'UW', 'UW', 'UW', 'UW']

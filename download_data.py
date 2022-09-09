@@ -10,7 +10,7 @@ from FDSN. To get them internally, use the other script.
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Friday, 9th September 2022 11:08:53 am
-Last Modified: Friday, 9th September 2022 04:51:21 pm
+Last Modified: Friday, 9th September 2022 04:51:42 pm
 '''
 
 from obspy.clients.fdsn import Client
@@ -24,7 +24,7 @@ nets = ['CC', 'UW', 'UW', 'UW', 'UW']
 stats = ['JRO', 'SHW', 'HSR', 'EDM']
 
 starts = [
-    UTCDateTime(2004, 10, 2), UTCDateTime(1980, 1, 1),
+    UTCDateTime(2004, 10, 2), UTCDateTime(1972, 10, 1),
     UTCDateTime(1985, 8, 12), UTCDateTime(1980, 6, 1)]
 end = UTCDateTime.now()
 
