@@ -8,3 +8,7 @@ pygmt
 # download_data. py requires
 SeisMIC  # retrievable on https://github.com/PeterMakus/SeisMIC
 obspy
+
+# get_data_cascadia.py requires
+obspy
+pwnstor # retrievable at https://github.com/niyiyu/pnwstore

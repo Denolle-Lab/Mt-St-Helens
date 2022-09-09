@@ -1,5 +1,6 @@
 '''
-I used this code snippet to retrieve waveform data and response information.
+I used this code snippet to retrieve waveform data and response information
+from FDSN. To get them internally, use the other script.
 
 :copyright:
 :license:
@@ -9,7 +10,7 @@ I used this code snippet to retrieve waveform data and response information.
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Friday, 9th September 2022 11:08:53 am
-Last Modified: Friday, 9th September 2022 12:05:17 pm
+Last Modified: Friday, 9th September 2022 02:14:34 pm
 '''
 
 from obspy.clients.fdsn import Client
