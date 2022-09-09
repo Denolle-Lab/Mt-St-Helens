@@ -10,7 +10,7 @@ from FDSN. To get them internally, use the other script.
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Friday, 9th September 2022 11:08:53 am
-Last Modified: Friday, 9th September 2022 02:14:34 pm
+Last Modified: Friday, 9th September 2022 03:21:22 pm
 '''
 
 from obspy.clients.fdsn import Client
@@ -36,4 +36,4 @@ sc = Store_Client(c, root, read_only=False)
 for net, stat, start in zip(nets, stats, starts):
     sc.download_waveforms_mdl(
         start, end, clients=[c], network=net, station=stat, location='*',
-        channel='HH?')
+        channel='?H?')

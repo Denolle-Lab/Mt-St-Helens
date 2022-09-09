@@ -10,7 +10,7 @@ The directory structure adheres to the one SeisMIC employs.
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Friday, 9th September 2022 03:07:42 pm
-Last Modified: Friday, 9th September 2022 03:09:45 pm
+Last Modified: Friday, 9th September 2022 03:21:17 pm
 '''
 
 import os
@@ -35,7 +35,7 @@ for net, stat, start in zip(nets, stats, starts):
     this_day = start
     while end - this_day > 86400:
         s = client.get_waveforms(
-            network=net, station=stat, channel="HH?",
+            network=net, station=stat, channel="?H?",
             year=this_day.year, doy=this_day.julday)
 
         this_day += 86400
