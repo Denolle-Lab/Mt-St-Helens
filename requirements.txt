@@ -1,0 +1,10 @@
+#
+# Just the requirements sorted by the different codes
+
+# plot_stations.ipynb requires
+pandas
+pygmt
+
+# download_data. py requires
+SeisMIC  # retrievable on https://github.com/PeterMakus/SeisMIC
+obspy
