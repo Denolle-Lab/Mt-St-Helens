@@ -25,22 +25,20 @@ import matplotlib.colors as colors
 from scipy.signal import welch
 from scipy.interpolate import pchip_interpolate
 
-from seismic.plot.plot_utils import set_mpl_params
-
 
 # File locations
 # Folder that only contains mseeds same directory structure as the one
 # created in downloads
 mseed = '/home/pmakus/mt_st_helens/mseed'
 # The station xml
-stationresponse = '/home/pmakus/mt_st_helens/station/SHW.UW.xml'
+stationresponse = '/home/pmakus/mt_st_helens/station/UW.SHW.xml'
 # output directories
 output = '/home/pmakus/mt_st_helens/PSD'
 # Station Name '{network}.{station}'
 station = 'SHW'
 network = 'UW'
-channel = '??E'
-startdate = UTCDateTime(1972, 10, 1)
+channel = '??Z'
+startdate = UTCDateTime(1980, 1, 1)
 enddate = UTCDateTime(2021, 12, 31)
 
 
@@ -194,9 +192,10 @@ def spct_series_welch(
                 date=start, network=net, station=stat, channel=channel))
         try:
             st = read(loc)
-            tr = preprocess(st)[0]
-        except FileNotFoundError:
+        except (FileNotFoundError, Exception):
+            warnings.warn(f'File not found {loc}.')
             continue
+        tr = preprocess(st[0])
         for wintr in tr.slide(window_length=window_length, step=window_length):
             f, S = welch(wintr.data, fs=tr.stats.sampling_rate)
             # interpolate onto a logarithmic frequency space
@@ -268,7 +267,7 @@ def resample_or_decimate(
         return data.resample(srn)
 
 
-def preprocess(st: Stream):
+def preprocess(tr: Trace):
     """
     Some very basic preprocessing on the string in order to plot the spectral
     series. Does the following steps:
@@ -286,16 +285,59 @@ def preprocess(st: Stream):
     inv = read_inventory(stationresponse)
 
     # Downsample to make computations faster
-    st = resample_or_decimate(st, 25)
+    tr = resample_or_decimate(tr, 25)
     # Remove station responses
-    st.attach_response(inv)
-    st.remove_response()
+    tr.attach_response(inv)
+    tr.remove_response(inventory=inv)
     # Detrend
-    st.detrend(type='linear')
+    tr.detrend(type='linear')
 
     # highpass filter
-    st.filter('bandpass', freqmin=0.01, freqmax=12)
+    tr.filter('bandpass', freqmin=0.01, freqmax=12)
 
-    return st
+    return tr
+
+
+def set_mpl_params():
+    params = {
+        #'font.family': 'Avenir Next',
+        'pdf.fonttype': 42,
+        'font.weight': 'bold',
+        'figure.dpi': 150,
+        'axes.labelweight': 'bold',
+        'axes.linewidth': 1.5,
+        'axes.labelsize': 14,
+        'axes.titlesize': 18,
+        'axes.titleweight': 'bold',
+        'xtick.labelsize': 13,
+        'xtick.direction': 'in',
+        'xtick.top': True,  # draw label on the top
+        'xtick.bottom': True,  # draw label on the bottom
+        'xtick.minor.visible': True,
+        'xtick.major.top': True,  # draw x axis top major ticks
+        'xtick.major.bottom': True,  # draw x axis bottom major ticks
+        'xtick.minor.top': True,  # draw x axis top minor ticks
+        'xtick.minor.bottom': True,  # draw x axis bottom minor ticks
+        'ytick.labelsize': 13,
+        'ytick.direction': 'in',
+        'ytick.left': True,  # draw label on the top
+        'ytick.right': True,  # draw label on the bottom
+        'ytick.minor.visible': True,
+        'ytick.major.left': True,  # draw x axis top major ticks
+        'ytick.major.right': True,  # draw x axis bottom major ticks
+        'ytick.minor.left': True,  # draw x axis top minor ticks
+        'ytick.minor.right': True,  # draw x axis bottom minor ticks
+        'legend.fancybox': False,
+        'legend.frameon': False,
+        'legend.loc': 'upper left',
+        'legend.numpoints': 2,
+        'legend.fontsize': 'large',
+        'legend.framealpha': 1,
+        'legend.scatterpoints': 3,
+        'legend.edgecolor': 'inherit'
+    }
+    matplotlib.rcParams.update(params)
+    # matplotlib.font_manager._rebuild()
+
 
 main()
