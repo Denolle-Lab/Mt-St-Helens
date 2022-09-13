@@ -28,7 +28,7 @@ from scipy.signal import welch
 from scipy.interpolate import pchip_interpolate
 
 # Station Name '{network}.{station}'
-station = 'HSR'
+station = 'SHW'
 network = 'UW'
 channel = '??Z'
 
@@ -69,7 +69,7 @@ def main():
     logger.addHandler(fh)
     if os.path.isfile(os.path.join(output, f'{network}.{station}.{channel[-1]}.npz')):
         logger.info('PSD already computed...\nLoading from file')
-        with np.load(os.path.join(output, f'{network}.{station}.npz')) as A:
+        with np.load(os.path.join(output, f'{network}.{station}.{channel[-1]}.npz')) as A:
                 l = []
                 for item in A.files:
                     l.append(A[item])
@@ -203,6 +203,9 @@ def spct_series_welch(
     """
     l = []
     logger = logging.getLogger('compute_psd')
+
+    # List of actually available times
+    t = []
     for start in starts:
         # windows will overlap with half the window length
         # Hard-corded nperseg so that the longest period waves that
@@ -223,11 +226,10 @@ def spct_series_welch(
             f2 = np.logspace(-3, np.log10(f.max()), 512)
             S2 = pchip_interpolate(f, S, f2)
             l.append(S2)
+            t.append(start.timestamp)
     S = np.array(l)
 
-    t = np.linspace(
-        starts[0].timestamp, starts[-1].timestamp, S.shape[0]
-    )
+    t = np.array(t)
     np.savez(os.path.join(output, f'{network}.{station}.{channel[-1]}.npz'), f2, t, S.T)
     return f2, t, S.T
 
