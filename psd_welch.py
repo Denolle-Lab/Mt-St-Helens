@@ -16,6 +16,7 @@ from datetime import datetime
 import locale
 import os
 import warnings
+import logging
 
 import numpy as np
 from obspy import UTCDateTime, Stream, read_inventory, Trace, read
@@ -51,6 +52,17 @@ cm_data = np.loadtxt("batlow.txt")
 
 def main():
     os.makedirs(output, exist_ok=True)
+    # Configure logging
+    logfile = os.path.join(output, 'log.txt')
+    logger = logging.getLogger('compute_psd')
+    sh = logging.StreamHandler()
+    sh.setFormatter(logging.Formatter(
+        "%(asctime)s %(levelname)-8s %(message)s"))
+    fh = logging.FileHandler(logfile, mode='w')
+    fh.setFormatter(logging.Formatter(
+        "%(asctime)s %(levelname)-8s %(message)s"))
+    logger.addHandler(sh)
+    logger.addHandler(fh)
     if os.path.isfile(os.path.join(output, f'{network}.{station}.npz')):
         with np.load(os.path.join(output, f'{network}.{station}.npz')) as A:
                 l = []
@@ -61,7 +73,7 @@ def main():
         starts = np.arange(startdate, enddate, 24*3600)
         f, t, S = spct_series_welch(starts, 4*3600, network, station)
     plot_spct_series(S, f, t, )
-    plt.savefig(os.path.join(output, f'{network}.{station}.png'))
+    plt.savefig(os.path.join(output, f'{network}.{station}.png'), dpi=300)
 
 
 def plot_spct_series(
@@ -150,7 +162,6 @@ def plot_spct_series(
         raise ValueError('Normalisation %s unkown.' % norm)
 
     cmap = colors.LinearSegmentedColormap.from_list('batlow', cm_data)
-    # cmap = plt.get_cmap('batlow')
     S /= S.max()
     pcm = plt.pcolormesh(
         f, utc, S, shading='gouraud',
@@ -183,6 +194,7 @@ def spct_series_welch(
     :rtype: np.ndarray
     """
     l = []
+    logger = logging.getLogger('compute_psd')
     for start in starts:
         # windows will overlap with half the window length
         # Hard-corded nperseg so that the longest period waves that
@@ -193,7 +205,7 @@ def spct_series_welch(
         try:
             st = read(loc)
         except (FileNotFoundError, Exception):
-            warnings.warn(f'File not found {loc}.')
+            logger.warning(f'File not found {loc}.')
             continue
         tr = preprocess(st[0])
         for wintr in tr.slide(window_length=window_length, step=window_length):
@@ -287,8 +299,13 @@ def preprocess(tr: Trace):
     # Downsample to make computations faster
     tr = resample_or_decimate(tr, 25)
     # Remove station responses
-    tr.attach_response(inv)
-    tr.remove_response(inventory=inv)
+    try:
+        tr.attach_response(inv)
+        tr.remove_response(inventory=inv)
+    except ValueError as e:
+        logger = logging.getLogger('compute_psd')
+        logger.error(
+            f'Problem removing the instrument response Original Error {e}')
     # Detrend
     tr.detrend(type='linear')
 
