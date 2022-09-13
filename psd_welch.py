@@ -21,30 +21,34 @@ import logging
 import numpy as np
 from obspy import UTCDateTime, Stream, read_inventory, Trace, read
 from matplotlib import pyplot as plt
+import matplotlib
 import matplotlib.dates as mdates
 import matplotlib.colors as colors
 from scipy.signal import welch
 from scipy.interpolate import pchip_interpolate
 
+# Station Name '{network}.{station}'
+station = 'HSR'
+network = 'UW'
+channel = '??Z'
 
 # File locations
 # Folder that only contains mseeds same directory structure as the one
 # created in downloads
 mseed = '/home/pmakus/mt_st_helens/mseed'
-# The station xml
-stationresponse = '/home/pmakus/mt_st_helens/station/UW.SHW.xml'
+
 # output directories
 output = '/home/pmakus/mt_st_helens/PSD'
-# Station Name '{network}.{station}'
-station = 'SHW'
-network = 'UW'
-channel = '??Z'
+# The station xml
+stationresponse = f'/home/pmakus/mt_st_helens/station/{network}.{station}.xml'
+
 startdate = UTCDateTime(1980, 1, 1)
 enddate = UTCDateTime(2021, 12, 31)
+log_scale = False  # Plot frequency logarithmic?
 
 
 # Directory structure
-file = '{date.year}/{network}/{station}/{channel}/{network}.{station}.*.{channel}.{date.year}.{date.julday}'
+file = '{date.year}/{network}/{station}/{channel}.D/{network}.{station}.*.{channel}.D.{date.year}.{date.julday}'
 
 # Batlow colour scale
 cm_data = np.loadtxt("batlow.txt")
@@ -63,7 +67,8 @@ def main():
         "%(asctime)s %(levelname)-8s %(message)s"))
     logger.addHandler(sh)
     logger.addHandler(fh)
-    if os.path.isfile(os.path.join(output, f'{network}.{station}.npz')):
+    if os.path.isfile(os.path.join(output, f'{network}.{station}.{channel[-1]}.npz')):
+        logger.info('PSD already computed...\nLoading from file')
         with np.load(os.path.join(output, f'{network}.{station}.npz')) as A:
                 l = []
                 for item in A.files:
@@ -73,7 +78,8 @@ def main():
         starts = np.arange(startdate, enddate, 24*3600)
         f, t, S = spct_series_welch(starts, 4*3600, network, station)
     plot_spct_series(S, f, t, )
-    plt.savefig(os.path.join(output, f'{network}.{station}.png'), dpi=300)
+    plt.savefig(os.path.join(
+        output, f'{network}.{station}.{channel[-1]}.png'), dpi=300)
 
 
 def plot_spct_series(
@@ -118,7 +124,8 @@ def plot_spct_series(
 
     set_mpl_params()
 
-    plt.xscale('log')
+    if log_scale:
+        plt.yscale('log')
 
     if flim is not None:
         plt.ylim(flim)
@@ -127,7 +134,7 @@ def plot_spct_series(
         f = f[ii:jj]
         S = S[ii:jj, :]
     else:
-        plt.xlim(10**-1, f.max())
+        plt.ylim(10**-1, f.max())
 
     if tlim is not None:
         plt.xlim(tlim)
@@ -164,17 +171,18 @@ def plot_spct_series(
     cmap = colors.LinearSegmentedColormap.from_list('batlow', cm_data)
     S /= S.max()
     pcm = plt.pcolormesh(
-        f, utc, S, shading='gouraud',
-        norm=colors.LogNorm(vmin=1e-10, vmax=1e-5), cmap=cmap
+        utc, f, S, shading='gouraud',
+        norm=colors.LogNorm(vmin=1e-10, vmax=1e-6), cmap=cmap
         )
     plt.colorbar(
         pcm, label='energy (normalised)', orientation='horizontal', shrink=.6)
-    plt.xlabel(r'$f$ [Hz]')
+    plt.ylabel(r'$f$ [Hz]')
     # plt.xlabel('(dd/mm)')
     ax = plt.gca()
-    ax.yaxis.set_major_locator(mdates.AutoDateLocator())
-    ax.yaxis.set_major_formatter(mdates.DateFormatter('%h %y'))
-    # plt.xticks(rotation='vertical')
+    ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%h %y'))
+    plt.xticks(rotation=35)
+    plt.title(f'{network}.{station}.{channel[-1]}')
     return ax
 
 
@@ -220,7 +228,7 @@ def spct_series_welch(
     t = np.linspace(
         starts[0].timestamp, starts[-1].timestamp, S.shape[0]
     )
-    np.savez(os.path.join(output, f'{network}.{station}.npz'), f2, t, S.T)
+    np.savez(os.path.join(output, f'{network}.{station}.{channel[-1]}.npz'), f2, t, S.T)
     return f2, t, S.T
 
 
