@@ -43,7 +43,7 @@ output = '/home/pmakus/mt_st_helens/PSD'
 stationresponse = f'/home/pmakus/mt_st_helens/station/{network}.{station}.xml'
 
 startdate = UTCDateTime(1980, 1, 1)
-enddate = UTCDateTime(2021, 12, 31)
+enddate = UTCDateTime.now()
 log_scale = False  # Plot frequency logarithmic?
 
 
