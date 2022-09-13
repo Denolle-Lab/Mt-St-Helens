@@ -28,8 +28,8 @@ from scipy.signal import welch
 from scipy.interpolate import pchip_interpolate
 
 # Station Name '{network}.{station}'
-station = 'SHW'
 network = 'UW'
+station = 'EDM'
 channel = '??Z'
 
 # File locations

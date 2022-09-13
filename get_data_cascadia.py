@@ -27,7 +27,7 @@ starts = [
     UTCDateTime(2004, 10, 2), UTCDateTime(1980, 1, 1),
     UTCDateTime(1985, 8, 12), UTCDateTime(1980, 6, 1)]
 
-nets = ['CC', 'UW', 'UW', 'UW', 'UW']
+nets = ['CC', 'UW', 'UW', 'UW']
 stats = ['JRO', 'SHW', 'HSR', 'EDM']
 
 output = '/home/pmakus/mt_st_helens/mseed'
