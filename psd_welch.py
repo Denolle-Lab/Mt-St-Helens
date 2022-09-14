@@ -28,9 +28,9 @@ from scipy.signal import welch
 from scipy.interpolate import pchip_interpolate
 
 # Station Name '{network}.{station}'
-network = 'UW'
-station = 'EDM'
-channel = '??Z'
+network = 'CC'
+station = 'JRO'
+channel = '??E'
 
 # File locations
 # Folder that only contains mseeds same directory structure as the one
@@ -44,7 +44,7 @@ stationresponse = f'/home/pmakus/mt_st_helens/station/{network}.{station}.xml'
 
 startdate = UTCDateTime(1980, 1, 1)
 enddate = UTCDateTime.now()
-log_scale = False  # Plot frequency logarithmic?
+log_scale = True  # Plot frequency logarithmic?
 
 
 # Directory structure
@@ -114,6 +114,9 @@ def plot_spct_series(
     :param tlim: Limit time axis to the values in the given window
     :type tlim: Tuple[datetime, datetime]
     """
+    # Mask nans
+    S = np.ma.masked_invalid(S)
+
     # Show dates in English format
     locale.setlocale(locale.LC_ALL, "en_GB.utf8")
     # Create UTC time series
@@ -169,6 +172,7 @@ def plot_spct_series(
         raise ValueError('Normalisation %s unkown.' % norm)
 
     cmap = colors.LinearSegmentedColormap.from_list('batlow', cm_data)
+    cmap.set_bad('k')
     S /= S.max()
     pcm = plt.pcolormesh(
         utc, f, S, shading='gouraud',
@@ -217,12 +221,16 @@ def spct_series_welch(
             st = read(loc)
         except (FileNotFoundError, Exception):
             logger.warning(f'File not found {loc}.')
+            # if we are not at the very beginning, we write nans here
+            if len(t):
+                t.append(start.timestamp)
+                l.append(np.ones_like(l[-1])*np.nan)
             continue
         tr = preprocess(st[0])
         for wintr in tr.slide(window_length=window_length, step=window_length):
             f, S = welch(wintr.data, fs=tr.stats.sampling_rate)
             # interpolate onto a logarithmic frequency space
-            # 256 points of resolution in f direction hardcoded for now
+            # 512 points of resolution in f direction hardcoded for now
             f2 = np.logspace(-3, np.log10(f.max()), 512)
             S2 = pchip_interpolate(f, S, f2)
             l.append(S2)
