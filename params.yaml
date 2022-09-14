@@ -26,8 +26,8 @@ co:
     # These should be long enough for the reference (e.g. the standard
     # deviation) to be rather independent of the parts to remove
     # type: string
-    read_start : '1980-01-1 00:00:01.0'
-    read_end : '2021-12-31 23:59:59.0'
+    read_start : '1980-01-01 00:00:01.0'
+    read_end : '2022-09-12 23:59:59.0'
     # type: float [seconds]
     # The longer the faster, but higher RAM usage.
     # Note that this is also the length of the correlation batches
