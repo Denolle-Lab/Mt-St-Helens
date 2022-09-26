@@ -26,7 +26,7 @@ co:
     # These should be long enough for the reference (e.g. the standard
     # deviation) to be rather independent of the parts to remove
     # type: string
-    read_start : '1980-01-01 00:00:01.0'
+    read_start : '1997-06-01 00:00:01.0'
     read_end : '2022-09-12 23:59:59.0'
     # type: float [seconds]
     # The longer the faster, but higher RAM usage.
@@ -127,10 +127,10 @@ dv:
     plot_vel_change : True
 
     ### Definition of calender time windows for the time difference measurements
-    start_date : '2015-05-01 00:00:00.0'   # %Y-%m-%dT%H:%M:%S.%fZ'
-    end_date : '2016-01-01 00:00:00.0'
-    win_len : 86400                         # length of window in which EGFs are stacked
-    date_inc : 86400                        # increment of measurements
+    start_date : '1997-06-01 00:00:01.0'   # %Y-%m-%dT%H:%M:%S.%fZ'
+    end_date : '2022-09-12 23:59:59.0'
+    win_len : 21600                         # length of window in which EGFs are stacked
+    date_inc : 21600                        # increment of measurements
 
     ### Frequencies
     freq_min : 4

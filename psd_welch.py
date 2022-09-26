@@ -28,9 +28,12 @@ from scipy.signal import welch
 from scipy.interpolate import pchip_interpolate
 
 # Station Name '{network}.{station}'
-network = 'CC'
-station = 'JRO'
-channel = '??E'
+# network = 'UW'
+# station = 'EDM'
+# channel = '??Z'
+nets = ['CC', 'UW', 'UW', 'UW']
+stats = ['JRO', 'SHW', 'HSR', 'EDM']
+chans = ['??Z', '??E']
 
 # File locations
 # Folder that only contains mseeds same directory structure as the one
@@ -40,7 +43,7 @@ mseed = '/home/pmakus/mt_st_helens/mseed'
 # output directories
 output = '/home/pmakus/mt_st_helens/PSD'
 # The station xml
-stationresponse = f'/home/pmakus/mt_st_helens/station/{network}.{station}.xml'
+stationresponse = '/home/pmakus/mt_st_helens/station/{network}.{station}.xml'
 
 startdate = UTCDateTime(1980, 1, 1)
 enddate = UTCDateTime.now()
@@ -55,31 +58,39 @@ cm_data = np.loadtxt("batlow.txt")
 
 
 def main():
-    os.makedirs(output, exist_ok=True)
-    # Configure logging
-    logfile = os.path.join(output, 'log.txt')
-    logger = logging.getLogger('compute_psd')
-    sh = logging.StreamHandler()
-    sh.setFormatter(logging.Formatter(
-        "%(asctime)s %(levelname)-8s %(message)s"))
-    fh = logging.FileHandler(logfile, mode='w')
-    fh.setFormatter(logging.Formatter(
-        "%(asctime)s %(levelname)-8s %(message)s"))
-    logger.addHandler(sh)
-    logger.addHandler(fh)
-    if os.path.isfile(os.path.join(output, f'{network}.{station}.{channel[-1]}.npz')):
-        logger.info('PSD already computed...\nLoading from file')
-        with np.load(os.path.join(output, f'{network}.{station}.{channel[-1]}.npz')) as A:
-                l = []
-                for item in A.files:
-                    l.append(A[item])
-                f, t, S = l
-    else:
-        starts = np.arange(startdate, enddate, 24*3600)
-        f, t, S = spct_series_welch(starts, 4*3600, network, station)
-    plot_spct_series(S, f, t, )
-    plt.savefig(os.path.join(
-        output, f'{network}.{station}.{channel[-1]}.png'), dpi=300)
+    global network, station, channel
+    for (network, station, channel) in zip(
+            2*nets, 2*stats, 4*[chans[0]]+4*[chans[1]]):
+        os.makedirs(output, exist_ok=True)
+        # Configure logging
+        logfile = os.path.join(output, 'log.txt')
+        logger = logging.getLogger('compute_psd')
+        sh = logging.StreamHandler()
+        sh.setFormatter(logging.Formatter(
+            "%(asctime)s %(levelname)-8s %(message)s"))
+        fh = logging.FileHandler(logfile, mode='w')
+        fh.setFormatter(logging.Formatter(
+            "%(asctime)s %(levelname)-8s %(message)s"))
+        logger.addHandler(sh)
+        logger.addHandler(fh)
+        if os.path.isfile(os.path.join(output, f'{network}.{station}.{channel[-1]}.npz')):
+            logger.info('PSD already computed...\nLoading from file')
+            with np.load(os.path.join(output, f'{network}.{station}.{channel[-1]}.npz')) as A:
+                    l = []
+                    for item in A.files:
+                        l.append(A[item])
+                    f, t, S = l
+        else:
+            starts = np.arange(startdate, enddate, 24*3600)
+            try:
+                f, t, S = spct_series_welch(starts, 4*3600, network, station)
+            except Exception as e:
+                logger.error(e)
+                continue
+        plot_spct_series(S, f, t, )
+        plt.savefig(os.path.join(
+            output, f'{network}.{station}.{channel[-1]}.png'), dpi=300)
+        plt.close()
 
 
 def plot_spct_series(
@@ -175,8 +186,8 @@ def plot_spct_series(
     cmap.set_bad('k')
     S /= S.max()
     pcm = plt.pcolormesh(
-        utc, f, S, shading='gouraud',
-        norm=colors.LogNorm(vmin=1e-10, vmax=1e-6), cmap=cmap
+        utc, f, S, shading='gouraud', cmap=cmap,
+        norm=colors.LogNorm()#vmin=1e-10, vmax=1e-5)
         )
     plt.colorbar(
         pcm, label='energy (normalised)', orientation='horizontal', shrink=.6)
@@ -312,7 +323,7 @@ def preprocess(tr: Trace):
     """
 
     # Station response already available?
-    inv = read_inventory(stationresponse)
+    inv = read_inventory(stationresponse.format(network=network, station=station))
 
     # Downsample to make computations faster
     tr = resample_or_decimate(tr, 25)

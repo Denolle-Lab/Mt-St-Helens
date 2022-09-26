@@ -21,13 +21,11 @@ sc = Store_Client('IRIS', root, read_only=True)
 with open(yaml_f) as file:
     options = yaml.load(file, Loader=yaml.FullLoader)
 
-for method in ['autoComponents']: #, 'autocomponents']:
+for method in ['betweenComponents']: #, 'autocomponents']:
     options['co']['combination_method'] = method
     for ii in range(7):
         # Set bp: frequency
         f = (4/(2**ii), 8/(2**ii))
-        if f[0] >= 0.125:
-            continue
         # Length to save in s
         lts = 20*(1/f[0]) + 10
         options['co']['corr_args']['lengthToSave'] = lts

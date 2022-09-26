@@ -65,9 +65,9 @@ options['co']['subdivision'] = {
 
 for ii in range(7):
     # Set bp: frequency
-    f = (4/(2**ii), 8/(2**ii))
-    if f[0] >= 0.125:
+    if ii == 1:
         continue
+    f = (4/(2**ii), 8/(2**ii))
     # Length to save in s
     lts = 20*(1/f[0]) + 35
     options['co']['corr_args']['lengthToSave'] = lts
