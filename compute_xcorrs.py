@@ -69,6 +69,7 @@ for ii in range(7):
         continue
     f = (4/(2**ii), 8/(2**ii))
     # Length to save in s
+    lts = 50/f[0] + 10  # 10s extra because its xcorr
     lts = 20*(1/f[0]) + 35
     options['co']['corr_args']['lengthToSave'] = lts
     # sample rate

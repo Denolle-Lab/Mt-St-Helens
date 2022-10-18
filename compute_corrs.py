@@ -27,6 +27,7 @@ for method in ['betweenComponents']: #, 'autocomponents']:
         # Set bp: frequency
         f = (4/(2**ii), 8/(2**ii))
         # Length to save in s
+        lts = 50/f[0]
         lts = 20*(1/f[0]) + 10
         options['co']['corr_args']['lengthToSave'] = lts
         # sample rate

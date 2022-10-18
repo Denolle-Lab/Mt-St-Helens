@@ -51,7 +51,7 @@ log_scale = True  # Plot frequency logarithmic?
 
 
 # Directory structure
-file = '{date.year}/{network}/{station}/{channel}.D/{network}.{station}.*.{channel}.D.{date.year}.{date.julday}'
+file = '{date.year}/{network}/{station}/{channel}.D/{network}.{station}.*.{channel}.D.{date.year}.{doy}'
 
 # Batlow colour scale
 cm_data = np.loadtxt("batlow.txt")
@@ -227,7 +227,8 @@ def spct_series_welch(
         # can be resolved are around 300s
         loc = os.path.join(
             mseed, file.format(
-                date=start, network=net, station=stat, channel=channel))
+                date=start, network=net, station=stat, channel=channel,
+                doy=str(start.julday).zfill(3)))
         try:
             st = read(loc)
         except (FileNotFoundError, Exception):

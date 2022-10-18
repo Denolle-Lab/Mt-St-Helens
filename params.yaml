@@ -129,8 +129,8 @@ dv:
     ### Definition of calender time windows for the time difference measurements
     start_date : '1997-06-01 00:00:01.0'   # %Y-%m-%dT%H:%M:%S.%fZ'
     end_date : '2022-09-12 23:59:59.0'
-    win_len : 21600                         # length of window in which EGFs are stacked
-    date_inc : 21600                        # increment of measurements
+    win_len : 86400                         # length of window in which EGFs are stacked
+    date_inc : 43200                        # increment of measurements
 
     ### Frequencies
     freq_min : 4
@@ -142,7 +142,7 @@ dv:
     sides : 'both'   # options are left (for acausal), right (causal), both, or single (for active source experiments where the first sample is the trigger time)
     
     ### Range to try stretching
-    stretch_range : 0.03
+    stretch_range : 0.02
     stretch_steps : 1001
   
     #### Reference trace extraction
