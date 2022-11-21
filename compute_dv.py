@@ -18,17 +18,18 @@ with open(yaml_f) as file:
 # General options
 options['net'] = {'network': '*', 'station': '*'}
 
-os.chdir('/home/pmakus/mt_st_helens')
+os.chdir('/data/wsd01/st_helens_peter')
 
 meth = 'xstations'
-methods = ['xstations', 'autoComponents', 'betweenComponents']
+methods = ['xstations'] #, 'autoComponents', 'betweenComponents']
 
 
 for meth in methods:
     for ii in range(5):
         # f = [0.0625*(2**ii), 0.125*(2**ii)]
-        f = [0.25*(2**ii), 0.5*(2**ii)]
-
+        if ii != 0:
+            break
+        f = (4/(2**ii), 8/(2**ii))
         # tw_len = np.ceil(35/f[0])  # as in Hobiger, et al (2016)
         if 0.5 >= f[0] >= .25:
             tw_len = 60
@@ -52,26 +53,26 @@ for meth in methods:
         else:
             smoothlen_d = 90
         try:
-            corrdir = glob.glob(f'{meth}_no_response_removal_*{f[0]}-{f[1]}*')[0]
+            corrdir = glob.glob(f'corrs_response_removed/{meth}_*_{f[0]}-{f[1]}*')[0]
         except IndexError:
             if int(f[0])==f[0]:
                 f[0] = int(f[0])
             if int(f[1])==f[1]:
                 f[1] = int(f[1])
-            corrdir = glob.glob(f'{meth}_no_response_removal_*{f[0]}-{f[1]}*')[0]
+            corrdir = glob.glob(f'corrs_response_removed/{meth}_*_{f[0]}-{f[1]}*')[0]
 
         if 'station' not in corrdir:
             # Add extra seconds for direct wave arrival
             tws -= 1
             tw_len -= 10
 
-        # loop over different time windows
-        # wlen = float(corrdir.split('_wl')[-1].split('_1b_')[0])
-        # tw_len = wlen/10
-        # tws = 0
-        # for tws in np.arange(0, wlen, tw_len):
-        dvdir = f'dv/new_tws/{meth}_{f[0]}-{f[1]}_wl86400_tw{tws}-{tw_len}_1b_mute_SW_presmooth{smoothlen_d}d_srw'
-        options['dv']['preprocessing'][0]['args']['wsize'] = smoothlen_d*2  # Less smoothing for more precise drop check
+        date_inc = 86400
+        win_len = 86400
+        options['dv']['win_len'] = win_len
+        options['dv']['date_inc'] = date_inc
+
+        dvdir = f'dv/resp_removed/{meth}_{f[0]}-{f[1]}_wl86400_tw{tws}-{tw_len}_1b_mute_SW_presmooth{smoothlen_d}d_srw'
+        options['dv']['preprocessing'][0]['args']['wsize'] = int(smoothlen_d/(date_inc/86400))  # Less smoothing for more precise drop check
         options['co']['subdir'] = corrdir
         options['dv']['subdir'] = dvdir
         options['fig_subdir'] = dvdir + '_fig'

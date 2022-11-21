@@ -10,6 +10,7 @@ from copy import deepcopy
 import yaml
 from mpi4py import MPI
 from obspy import UTCDateTime
+from obspy.clients.fdsn import Client
 
 
 from seismic.correlate.correlate import Correlator
@@ -17,7 +18,7 @@ from seismic.trace_data.waveform import Store_Client
 
 
 yaml_f = '/home/pmakus/mt_st_helens/Mt-St-Helens/params.yaml'
-root = '/home/pmakus/mt_st_helens'
+root = '/data/wsd01/st_helens_peter'
 
 
 # Create mask
@@ -37,9 +38,15 @@ def create_utcl(loc: str):
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
+if rank == 0:
+    client = Client('IRIS')
+else:
+    client = None
+client = comm.bcast(client, root=0)
+
 
 # Client is not needed if read_only
-sc = Store_Client('IRIS', root, read_only=True)
+sc = Store_Client(client, root, read_only=True)
 
 if rank == 0:
     with open(yaml_f) as file:
@@ -48,29 +55,22 @@ else:
     options = None
 options = comm.bcast(options, root=0)
 
-# load masked times
-# if rank == 0:
-#     utcl = create_utcl('/home/makus/samovar/catalog_volanic_lp_tremors.txt')
-# else:
-#     utcl = None
-# utcl = comm.bcast(utcl, root=0)
-
 options['co']['combination_method'] = 'betweenStations'
 
 options['co']['subdivision'] = {
     'corr_inc': 3600,
     'corr_len': 3600,
-    'recombine_subdivision': True,
+    'recombine_subdivision': False,
     'delete_subdivision': False}
 
-for ii in range(7):
+for ii in range(6):
     # Set bp: frequency
-    if ii == 1:
+    if ii < 3:
         continue
     f = (4/(2**ii), 8/(2**ii))
     # Length to save in s
-    lts = 50/f[0] + 10  # 10s extra because its xcorr
-    lts = 20*(1/f[0]) + 35
+    lts = 50/f[0] + 30  # 10s extra because its xcorr
+    # lts = 20*(1/f[0]) + 35
     options['co']['corr_args']['lengthToSave'] = lts
     # sample rate
     fs_theo = f[1] * 2
@@ -100,7 +100,7 @@ for ii in range(7):
         #             'reverse': False}},
         {'function': 'seismic.correlate.preprocessing_stream.cos_taper_st',
             'args': {'taper_len': 10, # seconds
-                    'taper_at_masked': True}},
+                    'lossless': True}},
         {'function': 'seismic.correlate.preprocessing_stream.stream_filter',
             'args': {'ftype':'bandpass',
                     'filter_option': {'freqmin': 0.01,
@@ -123,9 +123,9 @@ for ii in range(7):
 
     
     options['co']['subdir'] = os.path.join(
-        f'xstations_no_response_removal_{fs}_{f[0]}-{f[1]}_wl{lts}_1b_SW'
+        'corrs_response_removed_longtw',
+        f'xstations_{fs}_{f[0]}-{f[1]}_wl{lts}_1b_SW'
     )
-    options['dv']['dt_ref'] = {'win_inc' : 0, 'method': 'mean', 'percentile': 50}
     # Do the actual computation
     c = Correlator(sc, deepcopy(options))
     c.pxcorr()

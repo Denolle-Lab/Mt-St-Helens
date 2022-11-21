@@ -8,22 +8,23 @@ os.environ['OPENBLAS_NUM_THREADS'] = '32'
 from copy import deepcopy
 
 import yaml
+from obspy.clients.fdsn import Client
 
 from seismic.correlate.correlate import Correlator
 from seismic.trace_data.waveform import Store_Client
 
 
 yaml_f = '/home/pmakus/mt_st_helens/Mt-St-Helens/params.yaml'
-root = '/home/pmakus/mt_st_helens'
+root = '/data/wsd01/st_helens_peter'
 
 # Client is not needed if read_only
-sc = Store_Client('IRIS', root, read_only=True)
+sc = Store_Client(Client('IRIS'), root, read_only=True)
 with open(yaml_f) as file:
     options = yaml.load(file, Loader=yaml.FullLoader)
 
-for method in ['betweenComponents']: #, 'autocomponents']:
+for method in ['betweenComponents', 'autoComponents']:
     options['co']['combination_method'] = method
-    for ii in range(7):
+    for ii in range(5):
         # Set bp: frequency
         f = (4/(2**ii), 8/(2**ii))
         # Length to save in s
@@ -52,7 +53,7 @@ for method in ['betweenComponents']: #, 'autocomponents']:
             'args':{'type':'linear'}},
             {'function': 'seismic.correlate.preprocessing_stream.cos_taper_st',
                 'args': {'taper_len': 10, # seconds
-                        'taper_at_masked': True}},
+                        'lossless': True}},
             {'function': 'seismic.correlate.preprocessing_stream.stream_filter',
                 'args': {'ftype':'bandpass',
                         'filter_option': {'freqmin': 0.01,
@@ -81,11 +82,13 @@ for method in ['betweenComponents']: #, 'autocomponents']:
         # Set folder name
         if method == 'autoComponents':
             options['co']['subdir'] = os.path.join(
-                 f'{method}_no_response_removal_{fs}_{f[0]}-{f[1]}_wl{lts}_1b'
+                'corrs_response_removed',
+                 f'{method}_{fs}_{f[0]}-{f[1]}_wl{lts}_1b'
             )
         else:
             options['co']['subdir'] = os.path.join(
-                                f'{method}_no_response_removal_{fs}_{f[0]}-{f[1]}_wl{lts}_1b_SW'
+                'corrs_response_removed',
+                f'{method}_{fs}_{f[0]}-{f[1]}_wl{lts}_1b_SW'
             )
         # Do the actual computation
         c = Correlator(sc, deepcopy(options))

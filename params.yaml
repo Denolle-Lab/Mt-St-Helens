@@ -1,6 +1,6 @@
 #### Project wide parameters
 # lowest level project directory
-proj_dir : '/home/pmakus/mt_st_helens'
+proj_dir : '/data/wsd01/st_helens_peter'
 # directory for logging information
 log_subdir : 'log'
 # levels:
@@ -21,7 +21,7 @@ net:
 co:
     # subdirectory of 'proj_dir' to store correlation
     # type: string
-    subdir : 'corr'
+    subdir : 'corr_response_removed'
     # times sequences to read for cliping or muting on stream basis
     # These should be long enough for the reference (e.g. the standard
     # deviation) to be rather independent of the parts to remove
@@ -41,7 +41,7 @@ co:
     # native sampling_rate)
     sampling_rate : 25
     # Remove the instrument response, will take substantially more time
-    remove_response : False
+    remove_response : True
 
     # Method to combine different traces
     combination_method : 'autoComponents'
@@ -59,8 +59,8 @@ co:
                     {'function':'seismic.correlate.preprocessing_stream.detrend_st',
                     'args':{'type':'linear'}},
                     {'function':'seismic.correlate.preprocessing_stream.cos_taper_st',
-                      'args':{'taper_len': 10, # seconds
-                              'taper_at_masked': True}},
+                      'args':{'taper_len': 60, # seconds
+                              'lossless': True}},
                     {'function':'seismic.correlate.preprocessing_stream.stream_filter',
                       'args':{'ftype':'bandpass',
                               'filter_option':{'freqmin':0.01, #0.01
@@ -79,7 +79,7 @@ co:
         # recombine these subdivisions
         # unused at the time
         # type: boolean
-        recombine_subdivision : True
+        recombine_subdivision : False
         # delete
         # type: booblean
         delete_subdivision : False
@@ -142,7 +142,7 @@ dv:
     sides : 'both'   # options are left (for acausal), right (causal), both, or single (for active source experiments where the first sample is the trigger time)
     
     ### Range to try stretching
-    stretch_range : 0.02
+    stretch_range : 0.03
     stretch_steps : 1001
   
     #### Reference trace extraction
