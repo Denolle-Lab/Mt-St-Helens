@@ -8,7 +8,7 @@
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Wednesday, 22nd February 2023 02:35:08 pm
-Last Modified: Wednesday, 22nd February 2023 02:52:17 pm
+Last Modified: Wednesday, 22nd February 2023 03:51:14 pm
 '''
 import glob
 import os
@@ -37,8 +37,8 @@ for n in range(3):
             cst = cdb.get_data(net, stat, '??Z-??Z', 'stack_86398')
         ax = cst.plot(type='heatmap', cmap='seismic', timelimits=(-15, 15))
         ax.set_title(f'{net}.{stat}.Z-Z\nStation Distance {cst[0].stats.dist} km')
-        plt.savefig(
-            os.path.join(outpath, f'{net}.{stat}.Z-Z.pdf'), transparent=True)
+        # plt.savefig(
+        #     os.path.join(outpath, f'{net}.{stat}.Z-Z.pdf'), transparent=True)
         plt.savefig(
             os.path.join(
                 outpath, f'{net}.{stat}.Z-Z.png'), dpi=300, transparent=True)
