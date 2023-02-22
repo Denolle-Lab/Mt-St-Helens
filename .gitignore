@@ -1,2 +1,5 @@
 add_leading_zero.py
 *log*
+*.pdf
+*.png
+res_test/
