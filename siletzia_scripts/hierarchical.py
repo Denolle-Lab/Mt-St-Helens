@@ -29,6 +29,8 @@ k = 4  # Always create 4 clusters
 
 freqs = [0.25*2**n for n in range(3)]
 
+indir = '/data/wsd01/st_helens_peter'
+
 
 def main(path, cluster_file, network, station):
     with CorrelationDataBase(path, mode='r') as cdb:
@@ -61,7 +63,7 @@ def main(path, cluster_file, network, station):
         # ax.set_xticklabels('')
         # ax.set_axis_off()
         # plt.hlines(max_d, ax.get_xlim()[0], ax.get_xlim()[1], colors='k', linestyles='--')
-        plt.savefig(f'clusters_response_removed/dendrogram_{cb.stats.network}_{cb.stats.station}_{freq}.png', dpi=300)
+        plt.savefig(f'{indir}/clusters_response_removed/dendrogram_{cb.stats.network}_{cb.stats.station}_{freq}.png', dpi=300)
         plt.close()
 
         print('clustering')
@@ -83,7 +85,7 @@ def main(path, cluster_file, network, station):
 
         ax.xaxis.set_major_formatter(mpl.dates.DateFormatter('%h %y'))
         plt.title(f'Cluster distribution\n{cb.stats.network}.{cb.stats.station} Z-Z {freq}-{freq*2} Hz')
-        plt.savefig(f'clusters_response_removed/distribution_hierach_{cb.stats.network}.{cb.stats.station}_{freq}.png', dpi=300)
+        plt.savefig(f'{indir}/clusters_response_removed/distribution_hierach_{cb.stats.network}.{cb.stats.station}_{freq}.png', dpi=300)
         plt.close()
 
         print('Sorting CorrTraces')
@@ -178,29 +180,29 @@ def main(path, cluster_file, network, station):
 
         ax2.legend([0, 1, 2, 3, 4], loc="lower center", ncol=3, bbox_to_anchor=(0.22, -0.05), bbox_transform=fig.transFigure)
 
-        plt.savefig(f'clusters_response_removed/hierarchical_merged_{network}.{station}_{freq}.png', dpi=300, bbox_inches='tight')
+        plt.savefig(f'{indir}/clusters_response_removed/hierarchical_merged_{network}.{station}_{freq}.png', dpi=300, bbox_inches='tight')
         plt.close()
 
 
 def save_cl_n(n: str, corrsts, inpath:str):
-    os.makedirs(f'clusters_response_removed/xstations_{freq}-{freq*2}_1b_SW_cl{n}', exist_ok=True)
-    outpath = f'clusters_response_removed/xstations_{freq}-{freq*2}_1b_SW_cl{n}/{corrsts[0][0].stats.network}.{corrsts[0][0].stats.station}.h5'
+    os.makedirs(f'{indir}/clusters_response_removed/xstations_{freq}-{freq*2}_1b_SW_cl{n}', exist_ok=True)
+    outpath = f'{indir}/clusters_response_removed/xstations_{freq}-{freq*2}_1b_SW_cl{n}/{corrsts[0][0].stats.network}.{corrsts[0][0].stats.station}.h5'
     with CorrelationDataBase(inpath, mode='r') as cdb:
         co = cdb.get_corr_options()
     with CorrelationDataBase(outpath, corr_options=co) as cdb:
         for m in n:
             cdb.add_correlation(corrsts[int(m)])
 
+
+from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 psize = comm.Get_size()
 for freq in freqs:
-    # for stat in stations:
-    #     path = f'corr_stuff/xstations_no_response_removal_*_{freq}-{freq*2}_wl*_1b_SW/{net}.{stat}.h5'
-    
+   
 
     paths = glob.glob(
-        f'corrs_response_removed_longtw/xstations_*_{freq}-{freq*2}_wl*_1b_SW/*.h5')
+        os.path.join(indir, f'corrs_response_removed_longtw/xstations_*_{freq}-{freq*2}_wl*_1b_SW/*.h5'))
     pmap = (np.arange(len(paths))*psize)/len(paths)
     pmap = pmap.astype(np.int32)
     for path, p in zip(paths, pmap):
@@ -208,5 +210,6 @@ for freq in freqs:
             continue
         net, stat, _ = os.path.basename(path).split('.')
 
-        cluster_file = f'clusters_response_removed/{stat}/indf{freq}'
+        cluster_file = os.path.join(indir, f'{indir}/clusters_response_removed/{stat}/indf{freq}')
+        os.makedirs(os.path.join(indir, f'{indir}/clusters_response_removed'), exist_ok=True)
         main(path, cluster_file, net, stat)
