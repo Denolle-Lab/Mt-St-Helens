@@ -6,7 +6,7 @@ pandas
 pygmt
 
 # download_data. py requires
-SeisMIC  # retrievable on https://github.com/PeterMakus/SeisMIC
+SeisMIC  # retrievable on https://github.com/PeterMakus/SeisMIC or via pip install
 obspy
 
 # get_data_cascadia.py requires

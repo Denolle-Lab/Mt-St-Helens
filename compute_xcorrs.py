@@ -63,11 +63,34 @@ options['co']['subdivision'] = {
     'recombine_subdivision': False,
     'delete_subdivision': False}
 
-for ii in range(6):
-    # Set bp: frequency
-    if ii < 3:
+
+# Fix EDM response removal problem
+# options['co']['xcombinations'] = [
+#     'UW-UW.EDM-YEL',
+#     'UW-UW.EDM-HSR',
+#     'UW-UW.EDM-JUN',
+#     'UW-UW.EDM-SHW',
+#     'UW-UW.EDM-SOS',
+#     'UW-UW.EDM-STD',
+#     'UW-UW.EDM-SUG',
+#     'CC-UW.SUG-EDM',
+#     'CC-UW.SUG-EDM',
+#     'CC-UW.JRO-EDM',
+#     'CC-UW.NED-EDM',
+#     'CC-UW.STD-EDM',
+#     'CC-UW.SWF2-EDM',
+#     'CC-UW.SWFL-EDM',
+#     'CC-UW.VALT-EDM',
+#     'PB-UW.B202-EDM',
+#     'PB-UW.B204-EDM',
+# ]
+
+# next compute a very broad one with 0.25-4Hz
+for ii in range(3):
+    if ii!=2:
         continue
-    f = (4/(2**ii), 8/(2**ii))
+    # Set bp: frequency
+    f = (1/(2**ii), 2/(2**ii))
     # Length to save in s
     lts = 50/f[0] + 30  # 10s extra because its xcorr
     # lts = 20*(1/f[0]) + 35
@@ -112,7 +135,7 @@ for ii in range(6):
             'args':{'joint_norm':False}},
         {'function':'seismic.correlate.preprocessing_fd.FDfilter',
             'args':{'flimit':[f[0]/2,f[0],f[1],fupzero]}}]
-    
+
     options['co']['corr_args']['TDpreProcessing'] = [
         {'function':'seismic.correlate.preprocessing_td.detrend',
         'args':{'type':'linear'}},
@@ -121,7 +144,7 @@ for ii in range(6):
         {'function':'seismic.correlate.preprocessing_td.signBitNormalization',
         'args': {}}]
 
-    
+
     options['co']['subdir'] = os.path.join(
         'corrs_response_removed_longtw',
         f'xstations_{fs}_{f[0]}-{f[1]}_wl{lts}_1b_SW'
