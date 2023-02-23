@@ -25,20 +25,23 @@ stats = [
 ]
 
 for n in range(3):
-    f = 1/2**n
+    f = 1.0/2**n
     path = glob.glob(
-        f'/data/wsd01/st_helens_peter/corrs_response_removed_longtw/xstations_*_{f}-{f*2}')[0]
+        f'/data/wsd01/st_helens_peter/corrs_response_removed_longtw/xstations_*_{f}-{f*2}*')[0]
     outpath = f'/data/wsd01/st_helens_peter/figures/xcorrs/{f}-{f*2}'
     os.makedirs(outpath, exist_ok=True)
     for net, stat in zip(nets, stats):
+        outfile = os.path.join(
+                outpath, f'{net}.{stat}.Z-Z.png')
+        if os.path.isfile(outfile):
+            continue
         infile = os.path.join(path, f'{net}.{stat}.h5')
-        with CorrelationDataBase(path, mode='r') as cdb:
+        with CorrelationDataBase(infile, mode='r') as cdb:
             # cst = cdb.get_data('UW-UW', 'HSR-HSR', 'EHZ-EHZ', 'subdivision')
-            cst = cdb.get_data(net, stat, '??Z-??Z', 'stack_86398')
+            cst = cdb.get_data(net, stat, '??Z-??Z', 'subdivision')
+        cst = cst.stack(stack_len='daily', regard_location=False)
         ax = cst.plot(type='heatmap', cmap='seismic', timelimits=(-15, 15))
         ax.set_title(f'{net}.{stat}.Z-Z\nStation Distance {cst[0].stats.dist} km')
-        plt.savefig(
-            os.path.join(outpath, f'{net}.{stat}.Z-Z.pdf'), transparent=True)
-        plt.savefig(
-            os.path.join(
-                outpath, f'{net}.{stat}.Z-Z.png'), dpi=300, transparent=True)
+        # plt.savefig(
+        #     os.path.join(outpath, f'{net}.{stat}.Z-Z.pdf'), transparent=True)
+        plt.savefig(outfile, dpi=300, transparent=True)

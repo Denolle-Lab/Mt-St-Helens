@@ -15,13 +15,11 @@ from seismic.monitor.dv import read_dv
 
 
 # The maps should be like this
-# old
 lat = [46.09, 46.3]
 lon = [-122.34, -122.1]
 # New, slightly larger coverage
 lat = [46.05, 46.36]
 lon = [-122.34, -122.03]
-
 
 # Y-extent
 y = degrees2kilometers(lat[1]- lat[0])
@@ -33,7 +31,7 @@ x = degrees2kilometers(locations2degrees(lat[0], lon[0], lat[0], lon[1]))
 res = 1  # km
 
 # Time-series
-delta = 10*24*3600
+delta = 180*24*3600
 start = UTCDateTime(year=1998, julday=1).timestamp
 end = UTCDateTime(year=2022, julday=365).timestamp
 times = np.arange(start, end, delta)
@@ -83,7 +81,6 @@ for n in range(3):
     ind = pmap == rank
     ind = np.arange(len(times), dtype=int)[ind]
 
-
     outdir = os.path.join(
         f'/data/wsd01/st_helens_peter/spatial/ddt_final_cl{corr_len}_std{std_model}_largemap',
         f'{os.path.basename(indir)}')
@@ -94,20 +91,19 @@ for n in range(3):
         dvg = deepcopy(dvgo)
         utc = UTCDateTime(utc)
         try:
-            dvg.compute_dv_grid(dvs_all, utc, dt, vel, mf_path, res, corr_len, std_model)
+            dvg.compute_resolution(
+                dvs_all, utc, res, corr_len, dt, std_model, vel, mf_path)
         except IndexError as e:
             print(e)
             grids[:, :, ii] += np.nan
             continue
         # save raw data for joint plot and L-curve analysis
-        np.savez(os.path.join(outdir, f'{utc}.npz'), dv=dvg.vel_change, xaxis=dvg.xaxis, yaxis=dvg.yaxis, statx=dvg.statx, staty=dvg.staty)
-        grids[:, :, ii] = dvg.vel_change
-
+        np.savez(os.path.join(outdir, f'{utc}_res.npz'), res=dvg.resolution, xaxis=dvg.xaxis, yaxis=dvg.yaxis, statx=dvg.statx, staty=dvg.staty)
+        grids[:, :, ii] = dvg.resolution
 
     comm.Allreduce(MPI.IN_PLACE, [grids, MPI.DOUBLE], op=MPI.SUM)
     
     if rank == 0:
         np.savez(
-            os.path.join(outdir, f'dvdt_3D.npz'), dv=grids, xaxis=dvgo.xaxis,
+            os.path.join(outdir, f'resolution_3D.npz'), dv=grids, xaxis=dvgo.xaxis,
             yaxis=dvgo.yaxis, taxis=times, statx=dvg.statx, staty=dvg.staty)
-    # del grids
