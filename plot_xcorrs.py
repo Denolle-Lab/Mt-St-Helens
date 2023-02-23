@@ -24,11 +24,14 @@ stats = [
     'EDM-HSR', 'STD-VALT', 'STD-B202', 'HSR-SHW', 'SHW-SOS'
 ]
 
+stack_len = 60*24*3600  # Let's put 60d
+
 for n in range(3):
     f = 1.0/2**n
+    tlim = 15/f
     path = glob.glob(
         f'/data/wsd01/st_helens_peter/corrs_response_removed_longtw/xstations_*_{f}-{f*2}*')[0]
-    outpath = f'/data/wsd01/st_helens_peter/figures/xcorrs/{f}-{f*2}'
+    outpath = f'/data/wsd01/st_helens_peter/figures/xcorrs_60dstack/{f}-{f*2}'
     os.makedirs(outpath, exist_ok=True)
     for net, stat in zip(nets, stats):
         outfile = os.path.join(
@@ -37,11 +40,14 @@ for n in range(3):
             continue
         infile = os.path.join(path, f'{net}.{stat}.h5')
         with CorrelationDataBase(infile, mode='r') as cdb:
-            # cst = cdb.get_data('UW-UW', 'HSR-HSR', 'EHZ-EHZ', 'subdivision')
+            co = cdb.get_corr_options()
             cst = cdb.get_data(net, stat, '??Z-??Z', 'subdivision')
-        cst = cst.stack(stack_len='daily', regard_location=False)
-        ax = cst.plot(type='heatmap', cmap='seismic', timelimits=(-15, 15))
+        cst = cst.stack(stack_len=stack_len, regard_location=False)
+        ax = cst.plot(type='heatmap', cmap='seismic', timelimits=(-tlim, tlim))
         ax.set_title(f'{net}.{stat}.Z-Z\nStation Distance {cst[0].stats.dist} km')
         # plt.savefig(
         #     os.path.join(outpath, f'{net}.{stat}.Z-Z.pdf'), transparent=True)
         plt.savefig(outfile, dpi=300, transparent=True)
+        # write stack back
+        with CorrelationDataBase(path, corr_options=co) as cdb:
+            cdb.add_correlation(cst, tag=f'stack_{stack_len}')
