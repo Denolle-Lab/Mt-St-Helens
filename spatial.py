@@ -91,6 +91,8 @@ for n in range(3):
 
     # Compute
     for ii, utc in zip(ind, times[ind]):
+        if ii == 0:
+            continue
         dvg = deepcopy(dvgo)
         utc = UTCDateTime(utc)
         try:
