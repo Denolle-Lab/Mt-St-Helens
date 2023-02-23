@@ -14,17 +14,30 @@ import glob
 import os
 
 from matplotlib import pyplot as plt
+from mpi4py import MPI
+import numpy as np
 
 from seismic.db.corr_hdf5 import CorrelationDataBase
 
-nets = [
+nets = np.array([
     'UW-UW', 'CC-CC', 'CC-PB', 'UW-UW', 'UW-UW'
-]
-stats = [
+])
+stats = np.array([
     'EDM-HSR', 'STD-VALT', 'STD-B202', 'HSR-SHW', 'SHW-SOS'
-]
+])
 
 stack_len = 60*24*3600  # Let's put 60d
+
+comm = MPI.COMM_WORLD
+psize = comm.Get_size()
+if psize != 5:
+    print('Best to execute this with 5 cores')
+rank = comm.Get_rank()
+
+pmap = (np.arange(len(nets))*psize)/len(nets)
+pmap = pmap.astype(np.int32)
+ind = pmap == rank
+ind = np.arange(len(nets), dtype=int)[ind]
 
 for n in range(3):
     f = 1.0/2**n
@@ -33,7 +46,7 @@ for n in range(3):
         f'/data/wsd01/st_helens_peter/corrs_response_removed_longtw/xstations_*_{f}-{f*2}*')[0]
     outpath = f'/data/wsd01/st_helens_peter/figures/xcorrs_60dstack/{f}-{f*2}'
     os.makedirs(outpath, exist_ok=True)
-    for net, stat in zip(nets, stats):
+    for net, stat in zip(nets[ind], stats[ind]):
         outfile = os.path.join(
                 outpath, f'{net}.{stat}.Z-Z.png')
         if os.path.isfile(outfile):
