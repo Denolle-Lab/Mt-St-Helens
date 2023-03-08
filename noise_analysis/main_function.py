@@ -24,7 +24,7 @@ def main_noise(jday, year):
     # define some parameters------------------------------------------------------------------------------------------------------
     # station parameters
     net = 'UW'
-    sta = 'SHW'
+    sta = 'JUN'
     cha = 'EHZ'
     
     # instrument response parameters
@@ -37,7 +37,7 @@ def main_noise(jday, year):
     min_am = 0.8 # minimal amount of datapoints in sliced trace to take trace into acount
     
     # saving array
-    save_path = 'first_test/{}/{}'.format(year,sta) # path where to save file
+    save_path = 'arz/{}/{}'.format(year,sta) # path where to save file
     save_filename = '{}_{}_{}'.format(year, jday, sta) # file name
     
     # read in stream--------------------------------------------------------------------------------------------------------------
@@ -134,20 +134,22 @@ def main_noise(jday, year):
             pass
             
     # convert lists into arrays---------------------------------------------------------------------------------------------------
+    #only ifsaving as npy
 #     rms_ar = np.array(rms_list)
 #     rmes_ar = np.array(rmes_list)
 #     pgv_ar = np.array(pgv_list)
 #     pga_ar = np.array(pga_list)
 
 #     day_ar = np.array([freqs, Pxx, start_times, rms_ar, rmes_ar, pgv_ar, pga_ar])
-    day_ar = np.array([freqs, Pxx, start_times, rms_list, rmes_list, pgv_list, pga_list])
+#     day_ar = np.array([freqs, Pxx, start_times, rms_list, rmes_list, pgv_list, pga_list]) # not used if saving as npz
 
 
     # initialize save path and save array-----------------------------------------------------------------------------------------
     if not os.path.exists(save_path): # create folders from save_path if not exists
         os.makedirs(save_path)
         
-    save_nparray(save_path, save_filename, day_ar) # save array
+#     save_npy(save_path, save_filename, day_ar) # save array
+    save_npz(save_path, save_filename, freqs, Pxx, start_times, rms_list, rmes_list, pgv_list, pga_list) # save array
     
     return()
 
@@ -156,7 +158,7 @@ import multiprocessing
 from functools import partial
 
 # multiprocessing---------------------------------------------------------------------
-p = multiprocessing.Pool(processes=4)
-p.map(partial(main_noise,  year=2018), range(1,16))
+p = multiprocessing.Pool(processes=40)
+p.map(partial(main_noise,  year=2004), range(1,367))
 p.close()
 p.join()
