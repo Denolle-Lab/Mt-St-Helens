@@ -40,7 +40,7 @@ times = np.arange(start, end, delta)
 
 # inversion parameters
 # geo-parameters
-vel = 1  # km/s
+vel = 2  # km/s
 # According to Gabrielli et al. (2020) Q_S^-1 = 0.0014, for 3 Hz, mfp about 38 km
 #  Q_s = 2*pi*f*mf_path/v , mf_path = Q_s*v/(2*pi*f)
 mf_path = vel/(2*np.pi*0.0014*3)
@@ -65,7 +65,7 @@ rank = comm.Get_rank()
 for n in range(3):
     freq0 = 0.25*2**n
 
-    indir = glob.glob(f'/data/wsd01/st_helens_peter/dv/resp_removed_ddt/xstations_{freq0}-{freq0*2}*')[0]
+    indir = glob.glob(f'/data/wsd01/st_helens_peter/dv/resp_removed_longtw_final_QCpass_ddt/xstations_{freq0}-{freq0*2}*')[0]
 
 
     dvs_all = read_dv(os.path.join(indir, '*.npz'))
@@ -85,14 +85,12 @@ for n in range(3):
 
 
     outdir = os.path.join(
-        f'/data/wsd01/st_helens_peter/spatial/ddt_final_cl{corr_len}_std{std_model}_largemap',
+        f'/data/wsd01/st_helens_peter/spatial/ddt_newdvs_cl{corr_len}_std{std_model}_largemap',
         f'{os.path.basename(indir)}')
     os.makedirs(outdir, exist_ok=True)
 
     # Compute
     for ii, utc in zip(ind, times[ind]):
-        if ii == 0:
-            continue
         dvg = deepcopy(dvgo)
         utc = UTCDateTime(utc)
         try:
