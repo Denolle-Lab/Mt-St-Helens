@@ -8,7 +8,7 @@
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Thursday, 9th February 2023 12:00:05 pm
-Last Modified: Thursday, 9th February 2023 12:01:41 pm
+Last Modified: Friday, 21st April 2023 09:34:52 am
 '''
 
 from mpi4py import MPI
@@ -16,7 +16,11 @@ import numpy as np
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
-test = [ii for ii in np.arange(rank, rank+10, 1)]
-test = np.hstack(comm.allgather(test))
-if rank == 1:
-    print(test)
+counter = 0
+for ii in range(5):
+    counter += 1
+# gather all values of counter
+# counter = comm.gather(counter, root=0)
+# reduce all values of counter and print them afterwards
+counter = comm.reduce(counter, op=MPI.SUM, root=0)
+print(counter)
