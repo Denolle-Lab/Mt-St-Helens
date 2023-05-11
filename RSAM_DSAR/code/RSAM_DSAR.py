@@ -30,7 +30,6 @@ def preprocessing(year,jday, net, sta, cha):
 
         st.detrend('demean')
         st.taper(0.05, type='hann')
-#         st.merge(fill_value=0)
         
         # correct insrument response
         inv = obspy.read_inventory('/auto/pnwstore1-wd11/PNWStationXML/{}/{}.{}.xml'.format(net,net,sta))
@@ -46,11 +45,10 @@ def preprocessing(year,jday, net, sta, cha):
             dip = inv.get_orientation(tr.id, datetime=tr.stats.starttime)['dip']
             if dip > 0:
                 tr.data *= -1
-        st.merge(fill_value=0)
+#         st.merge(fill_value=0)
         print(':) year={}, jday={}, net={}, sta={}, cha={}'.format(year,jday, net, sta, cha))
     except:
-        print('pass {}'.format(jday))
-        print('year={}, jday{}, net={}, sta={}, cha={}'.format(year,jday, net, sta, cha))
+        print('pass station {} day {}'.format(sta,jday))
     return(st)
     
 def RSAM(data, samp_rate, datas, freq, Nm, N):
@@ -97,38 +95,37 @@ def freq_bands_taper(jday, year, net, sta, cha):
     freqs: list contains min and max frequency in Hz
     dsar: float represents displacement (integration of)'''
     
-    stime = time.time()
     freqs_names = ['rsam','mf','hf','dsar','ndsar']
     df = pd.DataFrame(columns=freqs_names)
     daysec = 24*3600
     freqs = [[2,5], [4.5,8], [8,16]]
     
     st = preprocessing(year,jday, net, sta, cha)
-
+    print(st)
     if len(st)>0: # if stream not empty
-        tr = st[0]
-        datas = []
-        data = tr.data
-        samp_rate = tr.meta['sampling_rate']
-        ti = tr.meta['starttime']
-        # round start time to nearest 10 min increment
-        tiday = obspy.UTCDateTime("{:d}-{:02d}-{:02d} 00:00:00".format(ti.year, ti.month, ti.day)) # date
-        ti = tiday+int(np.round((ti-tiday)/600))*600 # nearest 10 min to starttime
-        N = int(600*samp_rate)    # 10 minute windows in seconds
-        Nm = int(N*np.floor(len(data)/N)) # np.floor rounds always to the smaller number
-        # seconds per day (86400) * sampling rate (100) -> datapoints per day
-        print('RSAM start')
+        for tr in st:
+#         tr = st[0]
+            print('Loop {}'.format(tr))
+            datas = []
+            data = tr.data
+            samp_rate = tr.meta['sampling_rate']
+            ti = tr.meta['starttime']
+            # round start time to nearest 10 min increment
+            tiday = obspy.UTCDateTime("{:d}-{:02d}-{:02d} 00:00:00".format(ti.year, ti.month, ti.day)) # date
+            ti = tiday+int(np.round((ti-tiday)/600))*600 # nearest 10 min to starttime
+            N = int(600*samp_rate)    # 10 minute windows in seconds
+            Nm = int(N*np.floor(len(data)/N)) # np.floor rounds always to the smaller number
+            # seconds per day (86400) * sampling rate (100) -> datapoints per day
 
-        for freq, frequ_name in zip(freqs, freqs_names[:3]):
-            datas = RSAM(data, samp_rate, datas, freq, Nm, N) # get RSAM for different frequency bands
-            
-        print('DSAR start')
-        datas = DSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N)
-        print('nDSAR start')
-        datas = nDSAR(datas)
-        
-        print('df start')
-        df = create_df(datas, ti, freqs_names, df)
+            for freq, frequ_name in zip(freqs, freqs_names[:3]):
+                datas = RSAM(data, samp_rate, datas, freq, Nm, N) # get RSAM for different frequency bands
+
+            datas = DSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N)
+            datas = nDSAR(datas)
+
+#             noise_analysis(data, N, Nm, samp_rate)
+
+            df = create_df(datas, ti, freqs_names, df)
         
         if not os.path.exists('../tmp_{}/{}'.format(year, sta)):
             os.makedirs('../tmp_{}/{}'.format(year, sta))
@@ -155,7 +152,7 @@ net = args.net
 sta = args.sta
 cha = args.cha
 
-# python RSAM_DSAR.py 2004 2 3 'UW' 'EDM' 'EHZ'
+#--> python RSAM_DSAR.py 2004 2 3 'UW' 'EDM' 'EHZ'
 
 # calculate frequencie bands AND save stream
 # single processing -----------------------------------------------------------------------------
