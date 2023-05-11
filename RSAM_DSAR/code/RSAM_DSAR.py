@@ -7,6 +7,8 @@ import scipy
 import glob
 import sys
 import os
+import scipy as sc
+import time
 import matplotlib.pyplot as plt
 import argparse
 import warnings
@@ -18,27 +20,38 @@ client = WaveformClient()
 
 # Define all functions---------------------------------------------------
 
-def read_stream(sta,year,jday):
-    st = obspy.Stream()
-    st_d = obspy.Stream()
+def preprocessing(year,jday, net, sta, cha):
+
     try:
         # this stream will be used for RSAM and DSAR calculations
-        #st_read = obspy.read('/1-fnp/pnwstore1/p-wd05/PNW2004/UW/2004/{}/EDM.UW.2004.{}'.format(jday,jday))
-        st_read = client.get_waveforms(network='UW', station='{}'.format(sta), channel='*', year='{}'.format(year), doy='{}'.format(jday))
-        st += st_read
+        #st = obspy.read('/1-fnp/pnwstore1/p-wd05/PNW2004/UW/2004/{}/EDM.UW.2004.{}'.format(jday,jday))
+        st = client.get_waveforms(network=net, station=sta, channel=cha,
+                                       year='{}'.format(year), doy='{}'.format(jday))
+
         st.detrend('demean')
-        st.merge(method=0, fill_value=0, interpolation_samples=0)
+        st.taper(0.05, type='hann')
+#         st.merge(fill_value=0)
         
-        # this stream will be safed for the plot, therefor the stream is downsamplet but not processed
-        st_dec = st_read.copy()
-        st_dec = st_dec.decimate(15)  # downsampling for plot only
-        #st_dec.detrend('demean')
-        st_d += st_dec
-        #st_d.merge()
+        # correct insrument response
+        inv = obspy.read_inventory('/auto/pnwstore1-wd11/PNWStationXML/{}/{}.{}.xml'.format(net,net,sta))
+        pre_filt = [1e-3, 5e-2, 45, 50]
+        water_level = 60
         
+        for tr in st:
+            tr.remove_response(inventory=inv, zero_mean=True,taper=True, taper_fraction=0.05,
+                                      pre_filt=pre_filt, output="VEL", water_level=water_level,
+                                      plot=False)
+
+            # correct positive dip
+            dip = inv.get_orientation(tr.id, datetime=tr.stats.starttime)['dip']
+            if dip > 0:
+                tr.data *= -1
+        st.merge(fill_value=0)
+        print(':) year={}, jday={}, net={}, sta={}, cha={}'.format(year,jday, net, sta, cha))
     except:
         print('pass {}'.format(jday))
-    return(st, st_d)
+        print('year={}, jday{}, net={}, sta={}, cha={}'.format(year,jday, net, sta, cha))
+    return(st)
     
 def RSAM(data, samp_rate, datas, freq, Nm, N):
     filtered_data = obspy.signal.filter.bandpass(data, freq[0], freq[1], samp_rate)
@@ -61,6 +74,12 @@ def DSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N):
     dsar = mfd/hfd
     datas.append(dsar)
     return(datas)
+
+def nDSAR(datas):
+    dsar = datas[3]
+    ndsar = dsar/sc.stats.zscore(dsar)
+    datas.append(ndsar)
+    return(datas)
     
 # creates a df for each trace and append this df to a daily df
 def create_df(datas, ti, freqs_names, df):
@@ -71,19 +90,20 @@ def create_df(datas, ti, freqs_names, df):
     return(df)    
     
 # main function..............................................................................
-def freq_bands_taper(sta,year,jday):   
+def freq_bands_taper(jday, year, net, sta, cha):   
     ''' 
     calculate and store power in 10 min long time windows for different frequency bands
     sensor measured ground velocity
     freqs: list contains min and max frequency in Hz
     dsar: float represents displacement (integration of)'''
     
-    freqs_names = ['rsam','mf','hf', 'dsar']
+    stime = time.time()
+    freqs_names = ['rsam','mf','hf','dsar','ndsar']
     df = pd.DataFrame(columns=freqs_names)
     daysec = 24*3600
-    freqs = [[2, 5], [4.5, 8], [8,16]]
+    freqs = [[2,5], [4.5,8], [8,16]]
     
-    st, st_dec = read_stream(sta,year,jday)
+    st = preprocessing(year,jday, net, sta, cha)
 
     if len(st)>0: # if stream not empty
         tr = st[0]
@@ -97,34 +117,45 @@ def freq_bands_taper(sta,year,jday):
         N = int(600*samp_rate)    # 10 minute windows in seconds
         Nm = int(N*np.floor(len(data)/N)) # np.floor rounds always to the smaller number
         # seconds per day (86400) * sampling rate (100) -> datapoints per day
+        print('RSAM start')
 
         for freq, frequ_name in zip(freqs, freqs_names[:3]):
             datas = RSAM(data, samp_rate, datas, freq, Nm, N) # get RSAM for different frequency bands
-
+            
+        print('DSAR start')
         datas = DSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N)
-
+        print('nDSAR start')
+        datas = nDSAR(datas)
+        
+        print('df start')
         df = create_df(datas, ti, freqs_names, df)
         
-        if not os.path.exists('tmp_{}/{}'.format(year, sta)):
-            os.makedirs('tmp_{}/{}'.format(year, sta))
-        df.to_csv('tmp_{}/{}/_tmp_fl_{}_{}.csv'.format(year,sta,sta,jday), index=True, index_label='time')
-    return(st_dec)
+        if not os.path.exists('../tmp_{}/{}'.format(year, sta)):
+            os.makedirs('../tmp_{}/{}'.format(year, sta))
+        df.to_csv('../tmp_{}/{}/{}_{}.csv'.format(year,sta,sta,jday), index=True, index_label='time')
+        print('One day tooks {} seconds.'.format(round(time.time()-stime),3))
+    return()
 
 
 # end define functions------------------------------------------------------------------------
 
 parser = argparse.ArgumentParser(description='Calculate different frequency bands of RSMA and DSAR.')
-parser.add_argument('sta', type=str, help='Station you want to process')
 parser.add_argument('year', type=int, help='Year of interest')
 parser.add_argument('start_day', type=int, help='Julian day you want to start')
 parser.add_argument('end_day', type=int, help='Julian day +1 you want to end')
+parser.add_argument('net', type=str, help='Network you want to process')
+parser.add_argument('sta', type=str, help='Station you want to process')
+parser.add_argument('cha', type=str, help='Channel you want to process')
+
 args = parser.parse_args()
 
-sta = args.sta
 year = args.year
 jdays = ['{:03d}'.format(jday) for jday in range(args.start_day,args.end_day)]
+net = args.net
+sta = args.sta
+cha = args.cha
 
-## python RSAM_DSAR_taper.py 2004 2 3
+# python RSAM_DSAR.py 2004 2 3 'UW' 'EDM' 'EHZ'
 
 # calculate frequencie bands AND save stream
 # single processing -----------------------------------------------------------------------------
@@ -143,18 +174,22 @@ jdays = ['{:03d}'.format(jday) for jday in range(args.start_day,args.end_day)]
 import multiprocessing
 from functools import partial
 
+stime = time.time()
 p = multiprocessing.Pool(processes=16)
-st_long = obspy.Stream()
-for i, st_d in enumerate(p.imap(partial(freq_bands_taper,sta,year),jdays),1):
-    
-    st_long += st_d # st is downsampled
-    
-    sys.stdout.write('\r{} of {}'.format(i, len(jdays)))
-    sys.stdout.flush()
+# p.map(partial(freq_bands_taper,year=year, net=net, sta=sta, cha=cha),jdays)
+p.imap_unordered(partial(freq_bands_taper,year=year, net=net, sta=sta, cha=cha), jdays)
 p.close()
 p.join()
+print('Calculation tooks {} seconds.'.format(round(time.time()-stime),3))
 
+# # st_long = obspy.Stream()
+# # for i, st_d in enumerate(p.imap(partial(freq_bands_taper,sta,year),jdays),1):
+    
+# #     st_long += st_d # st is downsampled
+    
+# #     sys.stdout.write('\r{} of {}'.format(i, len(jdays)))
+# #     sys.stdout.flush()
 #st_long.write("tmp_{}/{}/st_{}_{}.mseed".format(year,sta,sta,year), format="MSEED") # save stream
 
-
-
+# call function to test-----------------------------------------------------------------------------
+# freq_bands_taper(2004,'002','UW','EDM','EHZ')
