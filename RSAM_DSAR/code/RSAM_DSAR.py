@@ -28,8 +28,8 @@ def preprocessing(year,jday, net, sta, cha):
         st = client.get_waveforms(network=net, station=sta, channel=cha,
                                        year='{}'.format(year), doy='{}'.format(jday))
 
-        st.detrend('demean')
-        st.taper(0.05, type='hann')
+        st.detrend('linear')
+        st.taper(max_percentage=None,max_length=5, type='hann') #max_length in sec
         
         # correct insrument response
         inv = obspy.read_inventory('/auto/pnwstore1-wd11/PNWStationXML/{}/{}.{}.xml'.format(net,net,sta))
@@ -95,17 +95,18 @@ def freq_bands_taper(jday, year, net, sta, cha):
     freqs: list contains min and max frequency in Hz
     dsar: float represents displacement (integration of)'''
     
-    freqs_names = ['rsam','mf','hf','dsar','ndsar']
+    start_time = time.time()
+    freqs_names = ['rsam','mf','hf','dsar']
     df = pd.DataFrame(columns=freqs_names)
     daysec = 24*3600
     freqs = [[2,5], [4.5,8], [8,16]]
     
     st = preprocessing(year,jday, net, sta, cha)
-    print(st)
+
     if len(st)>0: # if stream not empty
+#         st.resample(50)
         for tr in st:
 #         tr = st[0]
-            print('Loop {}'.format(tr))
             datas = []
             data = tr.data
             samp_rate = tr.meta['sampling_rate']
@@ -121,16 +122,16 @@ def freq_bands_taper(jday, year, net, sta, cha):
                 datas = RSAM(data, samp_rate, datas, freq, Nm, N) # get RSAM for different frequency bands
 
             datas = DSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N)
-            datas = nDSAR(datas)
+#             datas = nDSAR(datas) # --> add ndsar in freqs_names
 
 #             noise_analysis(data, N, Nm, samp_rate)
 
             df = create_df(datas, ti, freqs_names, df)
         
-        if not os.path.exists('../tmp_{}/{}'.format(year, sta)):
-            os.makedirs('../tmp_{}/{}'.format(year, sta))
-        df.to_csv('../tmp_{}/{}/{}_{}.csv'.format(year,sta,sta,jday), index=True, index_label='time')
-        print('One day tooks {} seconds.'.format(round(time.time()-stime),3))
+        if not os.path.exists('/data/wsd03/data_manuela/MtStHelens/RSAM_DSAR/{}/{}'.format(year, sta)):
+            os.makedirs('/data/wsd03/data_manuela/MtStHelens/RSAM_DSAR/{}/{}'.format(year, sta))
+        df.to_csv('/data/wsd03/data_manuela/MtStHelens/RSAM_DSAR/{}/{}/{}_{}.csv'.format(year,sta,sta,jday), index=True, index_label='time')
+        print('One day tooks {} seconds.'.format(round(time.time()-start_time),3))
     return()
 
 
@@ -153,6 +154,7 @@ sta = args.sta
 cha = args.cha
 
 #--> python RSAM_DSAR.py 2004 2 3 'UW' 'EDM' 'EHZ'
+#--> python RSAM_DSAR.py 2004 1 366 'UW' 'EHZ'
 
 # calculate frequencie bands AND save stream
 # single processing -----------------------------------------------------------------------------
@@ -171,6 +173,8 @@ cha = args.cha
 import multiprocessing
 from functools import partial
 
+# for sta in ['EDM','SHW','HSR','SOS','TDL','ELK','FL2','CDF']:
+#     print('Station {}'.format(sta))
 stime = time.time()
 p = multiprocessing.Pool(processes=16)
 # p.map(partial(freq_bands_taper,year=year, net=net, sta=sta, cha=cha),jdays)
