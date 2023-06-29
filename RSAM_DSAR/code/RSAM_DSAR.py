@@ -155,7 +155,7 @@ def create_df(datas, ti, freqs_names, df):
     return(df) 
     
 # main function..............................................................................
-def freq_bands_taper(jday, year, netstacha):   
+def freq_bands(jday, year, netstacha):   
     ''' 
     calculate and store power in 10 min long time windows for different frequency bands
     sensor measured ground velocity
@@ -166,16 +166,13 @@ def freq_bands_taper(jday, year, netstacha):
     sta = netstacha.split('-')[1]
     cha = netstacha.split('-')[2]
     
-    file_path = '../tmp_{}/{}/'.format(year, sta)
+    file_path = '/data/wsd03/data_manuela/MtStHelens/RSAM_DSAR/tmp_{}/{}/'.format(year, sta)
     file_name = '{}_{}.csv'.format(sta,jday)
         
     if os.path.isfile(file_path+file_name):
         print('file for {}-{} at {} already exist'.format(year,jday, netstacha))
         pass
     else:    
-        if not os.path.exists(file_path):
-            os.makedirs(file_path)
-
         start_time = time.time()
         freqs_names = ['rsam','mf','hf','dsar','ldsar', 'vsar']
         df = pd.DataFrame(columns=freqs_names)
@@ -210,23 +207,28 @@ def freq_bands_taper(jday, year, netstacha):
                 datas = noise_analysis(data, datas, samp_rate, N, Nm)
 
                 df = create_df(datas, ti, freqs_names, df)
-
+            
+            if not os.path.exists(file_path):
+                os.makedirs(file_path)
+                
             df.to_csv(file_path + file_name, index=True, index_label='time')
             print('One day tooks {} seconds.'.format(round(time.time()-start_time),3))
+        else:
+            print('empty stream station {} day {}'.format(sta,jday))
     return()
 
 
 # end define functions------------------------------------------------------------------------
 
-parser = argparse.ArgumentParser(description='Calculate different frequency bands of RSMA and DSAR.')
+parser = argparse.ArgumentParser(description='Calculate different frequency bands of RSMA, DSAR, RMS and more.')
 parser.add_argument('year', type=int, help='Year of interest')
 parser.add_argument('start_day', type=int, help='Julian day you want to start')
-parser.add_argument('end_day', type=int, help='Julian day +1 you want to end')
+parser.add_argument('end_day', type=int, help='Julian day you want to end')
 
 args = parser.parse_args()
 
 year = args.year
-jdays = ['{:03d}'.format(jday) for jday in range(args.start_day,args.end_day)]
+jdays = ['{:03d}'.format(jday) for jday in range(args.start_day,args.end_day+1)]
 
 # stations as string 'network-station-channel'
 s1  = 'UW-EDM-EHZ'
@@ -239,22 +241,22 @@ s7  = 'UW-TDL-EHZ'
 s8  = 'UW-SUG-EHZ'
 s9  = 'UW-YEL-EHZ'
 s10 = 'UW-FL2-EHZ'
-s11 = 'UW-CDF-?H?'
+s11 = 'UW-CDF-?HZ' #'UW-CDF-?H?' # eighter HHZ or EHZ
 
-s12 = 'UW-SEP-?H?'
-s13 = 'CC-SEP-?H?'
-# s14 = 'UW-STD-EHZ'
+s12 = 'UW-SEP-?HZ' #'UW-SEP-?H?'
+s13 = 'CC-SEP-?HZ' #'CC-SEP-?H?' # only one of the two SEP at the time & either EHZ or BHZ
+s14 = 'UW-STD-EHZ'
 s15 = 'CC-STD-BHZ'
 
-s16 = 'CC-VALT-BH?'
+s16 = 'CC-VALT-BHZ' #'CC-VALT-BH?'
 s17 = 'CC-JRO-BHZ'
-s18 = 'CC-HOA-BH?'
-s19 = 'CC-LOO-BH?'
-s20 = 'CC-USFR-BH?'
+s18 = 'CC-HOA-BHZ' #'CC-HOA-BH?'
+s19 = 'CC-LOO-BHZ' #'CC-LOO-BH?'
+s20 = 'CC-USFR-BHZ' #'CC-USFR-BH?'
 s21 = 'CC-NED-EHZ'
-s22 = 'CC-REM-BH?'
-s23 = 'CC-SWFL-BH?'
-s24 = 'CC-SFW2-BH?'
+s22 = 'CC-REM-BHZ' #'CC-REM-BH?'
+s23 = 'CC-SWFL-BHZ' #'CC-SWFL-BH?'
+s24 = 'CC-SFW2-BHZ' #'CC-SFW2-BH?'
 s25 = 'CC-MIDE-EHZ'
 s26 = 'CC-MIBL-EHZ'
 s27 = 'CC-BLIS-EHZ'
@@ -262,14 +264,16 @@ s28 = 'CC-RAFT-EHZ'
 s29 = 'CC-SPN5-EHZ'
 s30 = 'CC-SEND-EHZ'
 
-list_stations = [s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,
-                 s15,s16,s17,s18,s19,s20,s21,s22,s23,s24,s25,s26,s27,s28,s29,s30] # make a list of all stations
+# list_stations = [s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,
+#                  s15,s16,s17,s18,s19,s20,s21,s22,s23,s24,s25,s26,s27,s28,s29,s30] # make a list of all stations
+
+list_stations = [s11,s12,s13]#,s16,s18,s19,s20,s22,s23,s24]
 
 for netstacha in list_stations:
     print('Station {}'.format(netstacha))
     stime = time.time()
     p = multiprocessing.Pool(processes=24)
-    p.imap_unordered(partial(freq_bands_taper,year=year, netstacha=netstacha), jdays)
+    p.imap_unordered(partial(freq_bands,year=year, netstacha=netstacha), jdays)
     p.close()
     p.join()
     print('Calculation tooks {} seconds.'.format(round(time.time()-stime),3))
@@ -281,7 +285,7 @@ for netstacha in list_stations:
 
 #st_long = obspy.Stream()
 #for i, jday in enumerate(jdays,1):
-#    st_dec = freq_bands_taper(sta,year,jday)
+#    st_dec = freq_bands(sta,year,jday)
 #    st_long += st_dec
     
 #    sys.stdout.write('\r{} of {}\n'.format(i, len(jdays)))
@@ -301,9 +305,9 @@ for netstacha in list_stations:
 
 # stime = time.time()
 # p = multiprocessing.Pool(processes=24)
-# p.imap_unordered(partial(freq_bands_taper,year=year, net=net, sta=sta, cha=cha), jdays)
+# p.imap_unordered(partial(freq_bands,year=year, net=net, sta=sta, cha=cha), jdays)
 # p.close()
 # p.join()
 
 # call function to test-----------------------------------------------------------------------------
-# freq_bands_taper(2004,'002','UW','EDM','EHZ')
+# freq_bands(2004,'002','UW','EDM','EHZ')
