@@ -14,37 +14,38 @@ import argparse
 import warnings
 warnings.filterwarnings("ignore")
 
-sys.path.append("/data/wsd01/pnwstore/")
-from pnwstore.mseed import WaveformClient
-client = WaveformClient()
+from obspy.clients.fdsn.client import Client
 
 # Define all functions---------------------------------------------------
 
 def preprocessing(year,jday, net, sta, cha):
 
     try:
+        client = Client("IRIS")
         # this stream will be used for RSAM and DSAR calculations
-        #st = obspy.read('/1-fnp/pnwstore1/p-wd05/PNW2004/UW/2004/{}/EDM.UW.2004.{}'.format(jday,jday))
-        st = client.get_waveforms(network=net, station=sta, channel=cha,
-                                       year='{}'.format(year), doy='{}'.format(jday))
+        UTC = obspy.UTCDateTime(year=year, julday=jday)
+        stream = client.get_waveforms(network="UW",station=sta,location="01",channel="SHZ",
+                starttime=UTC,endtime=UTC+86400)
+        stream.resample(50)
 
         st.detrend('linear')
         st.taper(max_percentage=None,max_length=5, type='hann') #max_length in sec
         
-        # correct insrument response
-        inv = obspy.read_inventory('/auto/pnwstore1-wd11/PNWStationXML/{}/{}.{}.xml'.format(net,net,sta))
-        pre_filt = [1e-3, 5e-2, 45, 50]
-        water_level = 60
+#         # correct insrument response
+#         inv = obspy.read_inventory('/auto/pnwstore1-wd11/PNWStationXML/{}/{}.{}.xml'.format(net,net,sta))
+#         pre_filt = [1e-3, 5e-2, 45, 50]
+#         water_level = 60
         
-        for tr in st:
-            tr.remove_response(inventory=inv, zero_mean=True,taper=True, taper_fraction=0.05,
-                                      pre_filt=pre_filt, output="VEL", water_level=water_level,
-                                      plot=False)
+#         for tr in st:
+#             tr.remove_response(inventory=inv, zero_mean=True,taper=True, taper_fraction=0.05,
+#                                       pre_filt=pre_filt, output="VEL", water_level=water_level,
+#                                       plot=False)
 
-            # correct positive dip
-            dip = inv.get_orientation(tr.id, datetime=tr.stats.starttime)['dip']
-            if dip > 0:
-                tr.data *= -1
+#             # correct positive dip
+#             dip = inv.get_orientation(tr.id, datetime=tr.stats.starttime)['dip']
+#             if dip > 0:
+#                 tr.data *= -1
+                
 #         st.merge(fill_value=0)
         print(':) year={}, jday={}, net={}, sta={}, cha={}'.format(year,jday, net, sta, cha))
     except:
@@ -139,20 +140,39 @@ def freq_bands_taper(jday, year, net, sta, cha):
 # end define functions------------------------------------------------------------------------
 
 parser = argparse.ArgumentParser(description='Calculate different frequency bands of RSMA and DSAR.')
-parser.add_argument('year', type=int, help='Year of interest')
+# parser.add_argument('year', type=int, help='Year of interest')
 parser.add_argument('start_day', type=int, help='Julian day you want to start')
 parser.add_argument('end_day', type=int, help='Julian day +1 you want to end')
-parser.add_argument('net', type=str, help='Network you want to process')
-parser.add_argument('sta', type=str, help='Station you want to process')
-parser.add_argument('cha', type=str, help='Channel you want to process')
+# parser.add_argument('net', type=str, help='Network you want to process')
+# parser.add_argument('sta', type=str, help='Station you want to process')
+# parser.add_argument('cha', type=str, help='Channel you want to process')
 
 args = parser.parse_args()
 
-year = args.year
+# year = args.year
 jdays = ['{:03d}'.format(jday) for jday in range(args.start_day,args.end_day)]
-net = args.net
-sta = args.sta
-cha = args.cha
+# net = args.net
+# sta = args.sta
+# cha = args.cha
+
+s1 = 'UW-SPL-SHZ'
+s2 = 'UW-CWC-SHZ'
+s3 = 'UW-MUD-SHZ'
+s4 = 'UW-APE-SHZ'
+s5 = 'UW-CDF-SHZ'
+
+
+list_stations = [s1,s2,s3,s4,s5] # make a list of all stations
+
+for year in range(1980,1980+1):
+    for netstacha in list_stations:
+        print('Station {}'.format(netstacha))
+        stime = time.time()
+        p = multiprocessing.Pool(processes=24)
+        p.imap_unordered(partial(freq_bands,year=year, netstacha=netstacha), jdays)
+        p.close()
+        p.join()
+        print('Calculation tooks {} seconds.'.format(round(time.time()-stime),3))
 
 #--> python RSAM_DSAR.py 2004 2 3 'UW' 'EDM' 'EHZ'
 #--> python RSAM_DSAR.py 2004 1 366 'UW' 'EHZ'

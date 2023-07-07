@@ -221,13 +221,13 @@ def freq_bands(jday, year, netstacha):
 # end define functions------------------------------------------------------------------------
 
 parser = argparse.ArgumentParser(description='Calculate different frequency bands of RSMA, DSAR, RMS and more.')
-parser.add_argument('year', type=int, help='Year of interest')
+# parser.add_argument('year', type=int, help='Year of interest')
 parser.add_argument('start_day', type=int, help='Julian day you want to start')
 parser.add_argument('end_day', type=int, help='Julian day you want to end')
 
 args = parser.parse_args()
 
-year = args.year
+# year = args.year
 jdays = ['{:03d}'.format(jday) for jday in range(args.start_day,args.end_day+1)]
 
 # stations as string 'network-station-channel'
@@ -264,19 +264,19 @@ s28 = 'CC-RAFT-EHZ'
 s29 = 'CC-SPN5-EHZ'
 s30 = 'CC-SEND-EHZ'
 
-# list_stations = [s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,
-#                  s15,s16,s17,s18,s19,s20,s21,s22,s23,s24,s25,s26,s27,s28,s29,s30] # make a list of all stations
+list_stations = [s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,
+                 s15,s16,s17,s18,s19,s20,s21,s22,s23,s24,s25,s26,s27,s28,s29,s30] # make a list of all stations
 
-list_stations = [s11,s12,s13]#,s16,s18,s19,s20,s22,s23,s24]
-
-for netstacha in list_stations:
-    print('Station {}'.format(netstacha))
-    stime = time.time()
-    p = multiprocessing.Pool(processes=24)
-    p.imap_unordered(partial(freq_bands,year=year, netstacha=netstacha), jdays)
-    p.close()
-    p.join()
-    print('Calculation tooks {} seconds.'.format(round(time.time()-stime),3))
+# list_stations = [s11,s12,s13,s16,s18,s19,s20,s22,s23,s24]
+for year in range(1981,1999+1):
+    for netstacha in list_stations:
+        print('Station {}'.format(netstacha))
+        stime = time.time()
+        p = multiprocessing.Pool(processes=24)
+        p.imap_unordered(partial(freq_bands,year=year, netstacha=netstacha), jdays)
+        p.close()
+        p.join()
+        print('Calculation tooks {} seconds.'.format(round(time.time()-stime),3))
 
 #--> python RSAM_DSAR.py 2004 2 3
 
