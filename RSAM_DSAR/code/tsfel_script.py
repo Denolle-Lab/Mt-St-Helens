@@ -83,7 +83,7 @@ def tsfel_calc(jday, year, netstacha):
     cha = netstacha.split('-')[2]
     
 #     file_path = '/data/wsd03/data_manuela/MtStHelens/RSAM_DSAR/tmp_{}/{}/'.format(year, sta)
-    file_path = './tmp_{}/{}/'.format(year, sta)
+    file_path = '../data/tsfel_{}/{}/'.format(year, sta)
     file_name = '{}_{}.csv'.format(sta,jday)
         
     if os.path.isfile(file_path+file_name):
@@ -94,33 +94,29 @@ def tsfel_calc(jday, year, netstacha):
         daysec = 24*3600
 
         st = preprocessing(year,jday, net, sta, cha)
-        print(st)
+        st = st.merge() # -> different from RSAM_DSAR
 
         if len(st)>0: # if stream not empty
-    #         st.resample(50)
-            for tr in st:
-    #         tr = st[0]
-                datas = []
-                data = tr.data
-                samp_rate = tr.meta['sampling_rate']
-                ti = tr.meta['starttime']
-                # round start time to nearest 10 min increment
-                tiday = obspy.UTCDateTime("{:d}-{:02d}-{:02d} 00:00:00".format(ti.year, ti.month, ti.day)) # date
-                ti = tiday+int(np.round((ti-tiday)/600))*600 # nearest 10 min to starttime
-                N = int(600*samp_rate)    # 10 minute windows in seconds
-                Nm = int(N*np.floor(len(data)/N)) # np.floor rounds always to the smaller number
-                # seconds per day (86400) * sampling rate (100) -> datapoints per day
+            datas = []
+            fs = st[0].stats.sampling_rate
+            wlen = int(10 * 60 * fs)
+            nwindow = int(np.floor(len(st[0].data)/wlen))
+            nmax = int(wlen*np.floor(len(st[0].data)/wlen))
+            print(nwindow,wlen,nmax)
 
-#                 datas = DSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N)
-                cfg = tsfel.get_features_by_domain()
-                X = tsfel.time_series_features_extractor(cfg, data)
+            data = np.reshape(st[0].data[:nmax],(nwindow,wlen)) # seismic data in 10 min blocks as array
+            
+            cfg = tsfel.get_features_by_domain()
+
+            for i in range(nwindow):
+                datas.append(tsfel.time_series_features_extractor(cfg, data[i,:], fs= fs, window_size=wlen))
 
 #                 df = create_df(datas, ti, freqs_names, df)
             
             if not os.path.exists(file_path):
                 os.makedirs(file_path)
                 
-            X.to_csv(file_path + file_name, index=True, index_label='time')
+            datas.to_csv(file_path + file_name, index=True, index_label='time')
             print('One day tooks {} seconds.'.format(round(time.time()-start_time),3))
         else:
             print('empty stream station {} day {}'.format(sta,jday))
