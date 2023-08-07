@@ -20,7 +20,7 @@ lat = [46.09, 46.3]
 lon = [-122.34, -122.1]
 # New, slightly larger coverage
 lat = [46.05, 46.36]
-lon = [-122.34, -122.03]
+lon = [-122.45, -122.03]
 
 
 # Y-extent
@@ -34,8 +34,8 @@ res = 1  # km
 
 # Time-series
 delta = 10*24*3600
-start = UTCDateTime(year=1998, julday=1).timestamp
-end = UTCDateTime(year=2022, julday=365).timestamp
+start = UTCDateTime(year=1997, julday=175).timestamp
+end = UTCDateTime(year=2023, julday=81).timestamp
 times = np.arange(start, end, delta)
 
 # inversion parameters
@@ -44,11 +44,11 @@ vel = 2  # km/s
 # According to Gabrielli et al. (2020) Q_S^-1 = 0.0014, for 3 Hz, mfp about 38 km
 #  Q_s = 2*pi*f*mf_path/v , mf_path = Q_s*v/(2*pi*f)
 mf_path = vel/(2*np.pi*0.0014*3)
-dt = .05 # s  # for the numerical integration
+dt = .1 # s  # for the numerical integration
 
 # needs to be thoroughly tested
-corr_len = 1  # km; just a try
-std_model = .15  # 3.2e-2
+corr_len = 2  # km; just a try
+std_model = .3  # 3.2e-2
 
 
 
@@ -65,7 +65,10 @@ rank = comm.Get_rank()
 for n in range(3):
     freq0 = 0.25*2**n
 
-    indir = glob.glob(f'/data/wsd01/st_helens_peter/dv/resp_removed_longtw_final_QCpass_ddt/xstations_{freq0}-{freq0*2}*')[0]
+    indir = glob.glob(f'/data/wsd01/st_helens_peter/dv/resp_removed_longtw_final_QCpass_ddt/xstations_{freq0}-{freq0*2}*')
+    if len(indir) > 1:
+        raise ValueError('ambiguous directory')
+    indir = indir[0]
 
 
     dvs_all = read_dv(os.path.join(indir, '*.npz'))
@@ -90,6 +93,7 @@ for n in range(3):
     os.makedirs(outdir, exist_ok=True)
 
     # Compute
+    sing_counter = 0
     for ii, utc in zip(ind, times[ind]):
         dvg = deepcopy(dvgo)
         utc = UTCDateTime(utc)
@@ -99,15 +103,24 @@ for n in range(3):
             print(e)
             grids[:, :, ii] += np.nan
             continue
+        except np.linalg.LinAlgError as e:
+            print(e)
+            grids[:, :, ii] += np.nan
+            sing_counter += 1
+            continue
+
         # save raw data for joint plot and L-curve analysis
         np.savez(os.path.join(outdir, f'{utc}.npz'), dv=dvg.vel_change, xaxis=dvg.xaxis, yaxis=dvg.yaxis, statx=dvg.statx, staty=dvg.staty)
         grids[:, :, ii] = dvg.vel_change
 
 
     comm.Allreduce(MPI.IN_PLACE, [grids, MPI.DOUBLE], op=MPI.SUM)
-    
+    counter = comm.reduce(sing_counter, op=MPI.SUM, root=0)
+
     if rank == 0:
         np.savez(
             os.path.join(outdir, f'dvdt_3D.npz'), dv=grids, xaxis=dvgo.xaxis,
             yaxis=dvgo.yaxis, taxis=times, statx=dvg.statx, staty=dvg.staty)
+        print(f' Number of Singular Matrices encountered {sing_counter}.')
+
     # del grids

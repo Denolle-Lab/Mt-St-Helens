@@ -18,29 +18,41 @@ import glob
 import warnings
 
 from obspy import UTCDateTime
+from obspy.clients.fdsn import Client
 
 from pnwstore.mseed import WaveformClient
 
 client = WaveformClient()
+statclient = Client('IRIS')
 
-starts = [
-    UTCDateTime(2004, 10, 2), UTCDateTime(1997, 6, 1),
-    UTCDateTime(1997, 6, 1), UTCDateTime(1997, 6, 1)]
+# starts = [
+#     UTCDateTime(2004, 10, 2), UTCDateTime(1997, 6, 1),
+#     UTCDateTime(1997, 6, 1), UTCDateTime(1997, 6, 1)]
 
-nets = ['PB', 'PB', 'CC', 'CC', 'CC', 'CC', 'CC', 'CC', 'CC', 'UW', 'UW', 'UW', 'UW']
+# starts = [
+#     UTCDateTime(2007, 7, 18), UTCDateTime(1997, 6, 1)
+# ]
+
+nets = [
+    'PB', 'PB', 'CC', 'CC', 'CC', 'CC', 'CC', 'CC', 'CC', 'UW', 'UW', 'UW',
+    'UW', 'PB', 'UW', 'UW', 'UW', 'UW', 'CC']
 stats = [
     'B202', 'B204', 'SEP', 'STD', 'SUG', 'SWF2', 'VALT', 'SWFL', 'NED',
-    'JUN', 'STD', 'SUG', 'YEL']
+    'JUN', 'STD', 'SUG', 'YEL', 'B203', 'FL2', 'EDM', 'SHW', 'SOS', 'HSR', 'JRO']
+
 
 output = '/data/wsd01/st_helens_peter/mseed'
 
 
 end = UTCDateTime.now()
 
-for net, stat, start in zip(nets, stats, starts):
+for net, stat in zip(nets, stats):
+    inv = statclient.get_stations(network=net, station=stat, channel='*', location='*', level='response')
+    inv.write(f'/data/wsd01/st_helens_peter/inventory/{net}.{stat}.xml', format='STATIONXML')
 # net = 'UW'
 # stat = 'SOS'
-    start = UTCDateTime(1997,6,1)
+    # Try and update the db
+    start = UTCDateTime(2021,1,1)
     this_day = start
     while end - this_day > 86400:
         if len(glob.glob(os.path.join(output, f'{this_day.year}/{net}/{stat}/*.D', f'{net}.{stat}.*.*.D.{this_day.year}.{str(this_day.julday).zfill(3)}'))):
@@ -56,7 +68,7 @@ for net, stat, start in zip(nets, stats, starts):
 
         this_day += 86400
         for tr in s:
-            dir = f'output/{this_day.year}/{tr.stats.network}/{tr.stats.station}/{tr.stats.channel}.D'
+            dir = f'{output}/{this_day.year}/{tr.stats.network}/{tr.stats.station}/{tr.stats.channel}.D'
             os.makedirs(dir, exist_ok=True)
             tr.write(
                 os.path.join(dir, f'{net}.{stat}.{tr.stats.location}.{tr.stats.channel}.D.{this_day.year}.{str(this_day.julday).zfill(3)}'), format='MSEED')
