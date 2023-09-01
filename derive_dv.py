@@ -5,7 +5,7 @@ import numpy as np
 
 from seismic.monitor.dv import read_dv
 
-files = glob.glob('/data/wsd01/st_helens_peter/dv/resp_removed/xstations*45d_srw/*.npz')
+files = glob.glob('/data/wsd01/st_helens_peter/dv/resp_removed_longtw_final_QCpass/xstations*60d*_srw/*.npz')
 
 for infile in files:
     dv = read_dv(infile)

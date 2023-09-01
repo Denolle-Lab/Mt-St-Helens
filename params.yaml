@@ -27,7 +27,7 @@ co:
     # deviation) to be rather independent of the parts to remove
     # type: string
     read_start : '1997-06-01 00:00:01.0'
-    read_end : '2022-09-10 23:59:59.0'
+    read_end : '2023-03-15 23:59:59.0'
     # type: float [seconds]
     # The longer the faster, but higher RAM usage.
     # Note that this is also the length of the correlation batches
@@ -71,7 +71,14 @@ co:
                      #         'mute_value':3}}
                     ]
     # subdivision of the read sequences for correlation
-    # type: presence of this key
+    # if this is set the stream processing will happen on the hourly subdivision. This has the
+    # advantage that data that already exists will not need to be preprocessed again
+    # On the other hand, computing a whole new database might be slower
+    # Recommended to be set to True if:
+    # a) You update your database and a lot of the data is already available (up to a magnitude faster)
+    # b) corr_len is close to read_len
+    # Is automatically set to False if you are computing a completely new db
+    preprocess_subdiv: False
     subdivision:
         # type: float [seconds]
         corr_inc : 3600
@@ -128,7 +135,7 @@ dv:
 
     ### Definition of calender time windows for the time difference measurements
     start_date : '1997-06-01 00:00:01.0'   # %Y-%m-%dT%H:%M:%S.%fZ'
-    end_date : '2022-09-10 23:59:59.0'
+    end_date : '2023-03-15 23:59:59.0'
     win_len : 86400                         # length of window in which EGFs are stacked
     date_inc : 43200                        # increment of measurements
 
@@ -141,7 +148,7 @@ dv:
     tw_len : 60       # length of window [s]
     sides : 'both'   # options are left (for acausal), right (causal), both, or single (for active source experiments where the first sample is the trigger time)
     compute_tt : True  # Computes the travel time and adds it to tw_start (tt is 0 if not xstations). If true a rayleigh wave velocity has to be provided
-    rayleigh_wave_velocity : 1  # rayleigh wave velocity in km/s, will be ignored if compute_tt=False
+    rayleigh_wave_velocity : 2  # rayleigh wave velocity in km/s, will be ignored if compute_tt=False
     
     ### Range to try stretching
     stretch_range : 0.025
@@ -162,7 +169,7 @@ dv:
 
     # postprocessing of dv objects before saving and plotting
     postprocessing: [
-                      {'function': 'smooth_sim_mat', 'args': {'win_len': 7}}
+                      # {'function': 'smooth_sim_mat', 'args': {'win_len': 7, exclude_corr_below: .0}}
     ]
 
 #### parameters to compute the waveform coherence
