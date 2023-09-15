@@ -10,7 +10,7 @@ from FDSN. To get them internally, use the other script.
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Friday, 9th September 2022 11:08:53 am
-Last Modified: Friday, 9th September 2022 04:51:42 pm
+Last Modified: Tuesday, 12th September 2023 03:58:27 pm
 '''
 
 from obspy.clients.fdsn import Client
@@ -20,20 +20,24 @@ import logging
 
 c = Client()
 
-nets = ['CC', 'UW', 'UW', 'UW', 'UW']
-stats = ['JRO', 'SHW', 'HSR', 'EDM']
+# nets = ['CC', 'UW', 'UW', 'UW', 'UW']
+# stats = ['JRO', 'SHW', 'HSR', 'EDM']
 
-starts = [
-    UTCDateTime(2004, 10, 2), UTCDateTime(1972, 10, 1),
-    UTCDateTime(1985, 8, 12), UTCDateTime(1980, 6, 1)]
-end = UTCDateTime.now()
+# starts = [
+#     UTCDateTime(2004, 10, 2), UTCDateTime(1972, 10, 1),
+#     UTCDateTime(1985, 8, 12), UTCDateTime(1980, 6, 1)]
+# end = UTCDateTime.now()
 
-logger = logging.getLogger("obspy.clients.fdsn.mass_downloader")
+# logger = logging.getLogger("obspy.clients.fdsn.mass_downloader")
 
-logger.setLevel(logging.WARNING)
+# logger.setLevel(logging.WARNING)
 root = '/home/pm/Documents_sync/PhD/StHelens/'
 sc = Store_Client(c, root, read_only=False)
-for net, stat, start in zip(nets, stats, starts):
-    sc.download_waveforms_mdl(
-        start, end, clients=[c], network=net, station=stat, location='*',
-        channel='?H?')
+# for net, stat, start in zip(nets, stats, starts):
+net = 'UW'
+stat = 'SHW'
+start = UTCDateTime(2018, 1, 1)
+end = UTCDateTime(2018, 12, 3)
+sc.download_waveforms_mdl(
+    start, end, clients=[c], network=net, station=stat, location='*',
+    channel='EHZ')
