@@ -7,16 +7,20 @@
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Thursday, 14th September 2023 11:45:59 am
-Last Modified: Friday, 15th September 2023 11:53:05 am
+Last Modified: Friday, 15th September 2023 12:15:11 pm
 '''
 import requests
 import os
-import datetime
+import glob
+import fnmatch
 
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 from obspy import UTCDateTime, read, Stream
+
+from seismic.db.corr_hdf5 import CorrelationDataBase
+
 
 network = 'UW'
 stations = ['FL2', 'HSR', 'JUN', 'SHW', 'SOS', 'STD', 'SUG', 'YEL', 'EDM']
@@ -26,6 +30,7 @@ mseed = '/data/wsd01/st_helens_peter/mseed/{year}/{network}/{station}/{channel}.
 outfolder = '/data/wsd01/st_helens_peter/qc/'
 filterfolder = '/data/wsd01/st_helens_peter/mseed_qcfail'
 filtermseed = '/data/wsd01/st_helens_peter/mseed_qcfail/{year}/{network}/{station}/{channel}.D/{network}.{station}.{location}.{channel}.D.{year}.{jday}'
+corrdbs = '/data/wsd01/st_helens_peter/corrs_response*/*/*{network}*.*{station}*.h5'
 
 def main(filter, plot):
     os.makedirs(outfolder, exist_ok=True)
@@ -57,6 +62,8 @@ def main(filter, plot):
                 os.rename(
                     mseed.format(year=starttime.year, network=network, station=station, channel='EHZ', location='*', jday=str(starttime.julday).zfill(3)),
                     filtermseed.format(year=starttime.year, network=network, station=station, channel='EHZ', location='*', jday=str(starttime.julday).zfill(3)))
+            remove_from_corrdb(
+                network, station, 'EHZ', starttimes_mustang + starttimes_rms)
 
 
 def plot_data(st, kind):
@@ -71,6 +78,7 @@ def plot_data(st, kind):
     plt.savefig(os.path.join(outfolder, f'{tr.id}_{kind}.png'), dpi=300)
     plt.close()
 
+
 def iris_mustang(network, station, threshold=500):
     r = requests.get(
         mustang_url.format(network=network, station=station, channel='EHZ'),
@@ -84,6 +92,33 @@ def rms_value_check(network, station):
     rms = values['rms']
     starttimes = values['starttimes']
     return starttimes[np.where(rms > 300*np.nanmedian(rms))[0]]
+
+
+def remove_from_corrdb(network, station, channel, starttimes):
+    corrdbs = glob.glob(corrdbs.format(network=network, station=station))
+    for corrdb in corrdbs:
+        netcomb = os.path.basename(corrdb).split('.')[0]
+        statcomb = os.path.basename(corrdb).split('.')[1]
+        if (
+                netcomb.split('-')[0] == network 
+                and statcomb.split('-')[0] ==station
+                ):
+            chacomb = channel + '-' + '*'
+        else:
+            chacomb = '*' + '-' + channel
+        with CorrelationDataBase(corrdb, mode='r') as cdb:
+            co = cdb.get_corr_options()
+            chalist = fnmatch.filter(
+                cdb.get_available_channels(
+                    'subdivision', netcomb, statcomb),
+                chacomb)
+        with CorrelationDataBase(corrdb, co, 'a') as cdb:
+            for chacomb in chalist:
+                for starttime in starttimes:
+                    startstr = starttime.format_fissures()[:-12] + '*'
+                    cdb.remove_data(
+                        netcomb, statcomb, chacomb, 'subdivision', startstr)
+
 
 main(False, True)
 
