@@ -3,6 +3,7 @@
 proj_dir : '/data/wsd01/st_helens_peter'
 # directory for logging information
 log_subdir : 'log'
+save_comps_separately: True
 # levels:
 # 'DEBUG', 'INFO', 'WARNING', 'ERROR', or 'CRITICAL'
 log_level: 'WARNING'
@@ -27,7 +28,7 @@ co:
     # deviation) to be rather independent of the parts to remove
     # type: string
     read_start : '1997-06-01 00:00:01.0'
-    read_end : '2023-03-15 23:59:59.0'
+    read_end : '2023-09-01 23:59:59.0'
     # type: float [seconds]
     # The longer the faster, but higher RAM usage.
     # Note that this is also the length of the correlation batches
@@ -56,11 +57,6 @@ co:
     # these function work on an obspy.Stream object given as first argument
     # and return an obspy.Stream object.
     preProcessing : [
-                    {'function':'seismic.correlate.preprocessing_stream.detrend_st',
-                    'args':{'type':'linear'}},
-                    {'function':'seismic.correlate.preprocessing_stream.cos_taper_st',
-                      'args':{'taper_len': 60, # seconds
-                              'lossless': True}},
                     {'function':'seismic.correlate.preprocessing_stream.stream_filter',
                       'args':{'ftype':'bandpass',
                               'filter_option':{'freqmin':0.01, #0.01
@@ -96,6 +92,8 @@ co:
     corr_args : {'TDpreProcessing':[
                                     {'function':'seismic.correlate.preprocessing_td.detrend',
                                     'args':{'type':'linear'}},
+                                    {'function':'seismic.correlate.preprocessing_td.taper',
+                                    'args':{'type':'cosine_taper', 'p': 0.03}},
                                    {'function':'seismic.correlate.preprocessing_td.TDfilter',
                                    'args':{'type':'bandpass','freqmin':2,'freqmax':8}},
                                     #{'function':'seismic.correlate.preprocessing_td.mute',
@@ -135,7 +133,7 @@ dv:
 
     ### Definition of calender time windows for the time difference measurements
     start_date : '1997-06-01 00:00:01.0'   # %Y-%m-%dT%H:%M:%S.%fZ'
-    end_date : '2023-03-15 23:59:59.0'
+    end_date : '2023-09-01 23:59:59.0'
     win_len : 86400                         # length of window in which EGFs are stacked
     date_inc : 43200                        # increment of measurements
 

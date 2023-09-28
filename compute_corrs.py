@@ -3,33 +3,54 @@
 
 import os
 # OpenBLAS needs to be set for 512 threads
-os.environ['OPENBLAS_NUM_THREADS'] = '32'
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
 
 from copy import deepcopy
 
 import yaml
 from obspy.clients.fdsn import Client
+from mpi4py import MPI
+
+
 
 from seismic.correlate.correlate import Correlator
 from seismic.trace_data.waveform import Store_Client
+
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+
+if rank == 0:
+    client = Client('IRIS')
+else:
+    client = None
+client = comm.bcast(client, root=0)
 
 
 yaml_f = '/home/pmakus/mt_st_helens/Mt-St-Helens/params.yaml'
 root = '/data/wsd01/st_helens_peter'
 
 # Client is not needed if read_only
-sc = Store_Client(Client('IRIS'), root, read_only=True)
+sc = Store_Client(client, root, read_only=True)
 with open(yaml_f) as file:
     options = yaml.load(file, Loader=yaml.FullLoader)
 
-for method in ['betweenComponents', 'autoComponents']:
+options['co']['subdivision'] = {
+    'corr_inc': 3600,
+    'corr_len': 3600,
+    'recombine_subdivision': False,
+    'delete_subdivision': False}
+
+options['co']['remove_response'] = True
+
+for method in ['autoComponents', 'betweenComponents']:
     options['co']['combination_method'] = method
-    for ii in range(5):
+    for ii in range(3):
+        if ii == 0:
+            continue
         # Set bp: frequency
-        f = (4/(2**ii), 8/(2**ii))
+        f = (1/(2**ii), 2/(2**ii))
         # Length to save in s
-        lts = 50/f[0]
-        lts = 20*(1/f[0]) + 10
+        lts = 50/f[0] + 20
         options['co']['corr_args']['lengthToSave'] = lts
         # sample rate
         fs_theo = f[1] * 2
@@ -39,6 +60,8 @@ for method in ['betweenComponents', 'autoComponents']:
             fs = 2
         elif fs_theo <= 4:
             fs = 5
+        elif fs_theo <= 10:
+            fs = 12.5
         else:
             fs = 25
         options['co']['sampling_rate'] = fs
@@ -49,11 +72,6 @@ for method in ['betweenComponents', 'autoComponents']:
 
         # Decide about preprocessing
         options['co']['preProcessing'] = [
-            {'function': 'seismic.correlate.preprocessing_stream.detrend_st',
-            'args':{'type':'linear'}},
-            {'function': 'seismic.correlate.preprocessing_stream.cos_taper_st',
-                'args': {'taper_len': 10, # seconds
-                        'lossless': True}},
             {'function': 'seismic.correlate.preprocessing_stream.stream_filter',
                 'args': {'ftype':'bandpass',
                         'filter_option': {'freqmin': 0.01,
@@ -74,6 +92,8 @@ for method in ['betweenComponents', 'autoComponents']:
         options['co']['corr_args']['TDpreProcessing'] = [
             {'function':'seismic.correlate.preprocessing_td.detrend',
             'args':{'type':'linear'}},
+            {'function':'seismic.correlate.preprocessing_td.taper',
+            'args':{'type':'cosine_taper', 'p': 0.03}},
             {'function':'seismic.correlate.preprocessing_td.TDfilter',
             'args':{'type':'bandpass','freqmin':f[0],'freqmax':f[1]}},
             {'function':'seismic.correlate.preprocessing_td.signBitNormalization',

@@ -1,4 +1,6 @@
 import os
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
+
 import glob
 from copy import deepcopy
 
@@ -44,11 +46,11 @@ vel = 2  # km/s
 # According to Gabrielli et al. (2020) Q_S^-1 = 0.0014, for 3 Hz, mfp about 38 km
 #  Q_s = 2*pi*f*mf_path/v , mf_path = Q_s*v/(2*pi*f)
 mf_path = vel/(2*np.pi*0.0014*3)
-dt = .1 # s  # for the numerical integration
+dt = .05 # s  # for the numerical integration
 
 # needs to be thoroughly tested
 corr_len = 2  # km; just a try
-std_model = .3  # 3.2e-2
+std_model = .064  # 3.2e-2
 
 
 
@@ -66,15 +68,22 @@ for n in range(3):
     freq0 = 0.25*2**n
 
     indir = glob.glob(f'/data/wsd01/st_helens_peter/dv/resp_removed_longtw_final_QCpass_ddt/xstations_{freq0}-{freq0*2}*')
-    if len(indir) > 1:
+
+    # add auto and xcomp
+    indir2 = glob.glob(f'/data/wsd01/st_helens_peter/dv/resp_removed_longtw_final_ddt/autoComponents_{freq0}-{freq0*2}*')
+    indir3 = glob.glob(f'/data/wsd01/st_helens_peter/dv/resp_removed_longtw_final_ddt/betweenComponents_{freq0}-{freq0*2}*')
+    if len(indir) > 1 or len(indir2) > 1 or len(indir3) > 1:
         raise ValueError('ambiguous directory')
     indir = indir[0]
-
+    indir2 = indir2[0]
+    indir3 = indir3[0]
 
     dvs_all = read_dv(os.path.join(indir, '*.npz'))
+    dvs_all.extend(read_dv(os.path.join(indir2, '*.npz')))
+    dvs_all.extend(read_dv(os.path.join(indir3, '*.npz')))
 
     # create grid
-    dvgo = DVGrid(lat[0], lon[0], res, x, y)
+    dvgo = DVGrid(lat[0], lon[0], res, x, y, dt, vel, mf_path)
 
     grids = np.zeros(
         (len(dvgo.yaxis), len(dvgo.xaxis), len(times)), dtype=np.float64)
@@ -88,8 +97,8 @@ for n in range(3):
 
 
     outdir = os.path.join(
-        f'/data/wsd01/st_helens_peter/spatial/ddt_newdvs_cl{corr_len}_std{std_model}_largemap',
-        f'{os.path.basename(indir)}')
+        f'/data/wsd01/st_helens_peter/spatial/ddt_crosssingle_cl{corr_len}_std{std_model}_largemap',
+        f'{freq0}-{freq0*2}')
     os.makedirs(outdir, exist_ok=True)
 
     # Compute
@@ -98,7 +107,7 @@ for n in range(3):
         dvg = deepcopy(dvgo)
         utc = UTCDateTime(utc)
         try:
-            dvg.compute_dv_grid(dvs_all, utc, dt, vel, mf_path, res, corr_len, std_model)
+            dvg.compute_dv_grid(dvs_all, utc, res, corr_len, std_model)
         except IndexError as e:
             print(e)
             grids[:, :, ii] += np.nan
@@ -110,7 +119,7 @@ for n in range(3):
             continue
 
         # save raw data for joint plot and L-curve analysis
-        np.savez(os.path.join(outdir, f'{utc}.npz'), dv=dvg.vel_change, xaxis=dvg.xaxis, yaxis=dvg.yaxis, statx=dvg.statx, staty=dvg.staty)
+        np.savez(os.path.join(outdir, f'{utc.year}_{utc.julday}.npz'), dv=dvg.vel_change, xaxis=dvg.xaxis, yaxis=dvg.yaxis, statx=dvg.statx, staty=dvg.staty)
         grids[:, :, ii] = dvg.vel_change
 
 

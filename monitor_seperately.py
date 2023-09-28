@@ -21,14 +21,19 @@ yaml_f = '/home/pmakus/mt_st_helens/Mt-St-Helens/params.yaml'
 with open(yaml_f) as file:
     options = yaml.load(file, Loader=yaml.FullLoader)
 
+nets = ['CC']*2  + ['UW']*8
+stats = ['SEP', 'STD', 'EDM', 'HSR', 'FL2', 'HSR', 'JUN', 'SOS', 'SHW', 'STD']
 # General options
-options['net'] = {'network': '*', 'station': '*'}
+options['net'] = {'network': nets, 'station': stats}
+
+options['dv'].update({
+    'start_date' : '1997-06-01 00:00:00.0',
+    'end_date' : '2014-01-01 00:00:00.0'})
 
 os.chdir('/data/wsd01/st_helens_peter')
 
-methods = ['autoComponents', 'betweenComponents']
-# methods = ['xstations']
-methods = ['autoComponents']
+meth = 'xstations'
+methods = ['autoComponents'] #, 'betweenComponents']
 
 # Get events to exclude from correlations
 # minmag = 0
@@ -70,21 +75,17 @@ rank = comm.Get_rank()
 
 # otimes = np.array([evt.preferred_origin().time for evt in evts])
 for meth in methods:
-    for ii in range(3):
-        if ii != 0:
-            continue
-        f = [1/(2**ii), 2/(2**ii)]
+    for ii in range(2):
+
+        f = [1.0, 2.0]
 
         tws = np.floor(4/f[0])
-        tw_len = 40/f[0]
+        tw_len = 50/f[0]
 
 
         # new standard smoothing for new 0.25, 0.5, and 1.0 Hz
-        smoothlen_d = 30
-        if meth == 'xstations':
-            corrdir = glob.glob(f'corrs_response_removed_longtw/{meth}_*_{f[0]}-{f[1]}*')
-        else:
-            corrdir = glob.glob(f'corrs_response_removed/{meth}_*_{f[0]}-{f[1]}*')
+        smoothlen_d = 60
+        corrdir = glob.glob(f'corrs_response_removed/{meth}_*_{f[0]}-{f[1]}*')
         if len(corrdir) > 1:
             raise ValueError('ambiguous correlation directory')
         try:
@@ -98,12 +99,13 @@ for meth in methods:
 
         # One data point represents 10 days, should be good enough with such
         # a long smoothing
-        date_inc = 3600
-        win_len = 3600
+        date_inc = 864000
+        win_len = 864000
         options['dv']['win_len'] = win_len
         options['dv']['date_inc'] = date_inc
 
-        dvdir = f'dv/resp_removed_longtw_final_qc/{meth}_{f[0]}-{f[1]}_wl{win_len}_tw{tws}-{tw_len}__1b_mute_SW_presmooth{smoothlen_d}d_mrw180d'
+        read_start = deepcopy(options['dv']['start_date'])[:10]
+        dvdir = f'dv/dv_separately/{read_start}'
 
         # options['dv']['preprocessing'].append({
         #     'function': 'pop_at_utcs', 'args': {'utcs': otimes}})
@@ -115,10 +117,14 @@ for meth in methods:
         options['dv']['tw_len'] = tw_len
         options['dv']['freq_min'] = f[0]
         options['dv']['freq_max'] = f[1]
-        options['dv']['dt_ref'] = {'win_inc' : 180, 'method': 'mean', 'percentile': 50}
+        options['dv']['dt_ref'] = {'win_inc' : 0, 'method': 'mean', 'percentile': 50}
 
         m = Monitor(deepcopy(options))
         m.compute_velocity_change_bulk()
+
+        options['dv'].update({
+        'start_date' : '2014-01-01 00:00:01.0',
+        'end_date' : '2022-01-01 00:00:00.0'})
             # m.compute_components_average(method='AutoComponents')
             # m.compute_components_average(method='CrossComponents')
         # m.compute_components_average(method='CrossStations')
