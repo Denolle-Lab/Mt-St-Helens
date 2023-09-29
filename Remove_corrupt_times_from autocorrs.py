@@ -46,6 +46,7 @@ filename = '{network}-{network}.{station}-{station}.{channel}-{channel}.h5'
 
 def main():
     for infolder in infolders:
+        print(f'going through {infolder}')
         for net, stat, cha, start, end in zip(
                 networks, stations, channels, starttimes, endtimes):
             infile = os.path.join(
@@ -58,12 +59,15 @@ def main():
 def delete_corr_from_corrdb(infile, net, stat, cha, start, end):
     with CorrDB(infile, mode='r') as cdb:
         co = cdb.get_corr_options()
+        chans = cdb.get_available_channels(
+            'subdivision', f'{net}-{net}', f'{stat}-{stat}')
     start = UTCDateTime(start)
     end = UTCDateTime(end)
-    
-    with CorrDB(infile, mode='a', corr_options=co) as cdb:
-        while start < end:
-            thisstart = start.format_fissures()[:-12] + '*'
-            start += start + 86400
-            cdb.remove_data(net, stat, cha, 'subdivision', thisstart)
+    for cha in chans:
+        with CorrDB(infile, mode='a', corr_options=co) as cdb:
+            while start < end:
+                thisstart = start.format_fissures()[:-12] + '*'
+                start += 86400
+                cdb.remove_data(f'{net}-{net}', f'{stat}-{stat}', cha, 'subdivision', thisstart)
 
+main()
