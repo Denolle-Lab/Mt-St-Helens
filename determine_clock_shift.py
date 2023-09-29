@@ -32,8 +32,8 @@ cha = 'EHZ'
 # not implemented this way yet
 tw = [[tws, twe] for tws, twe in zip(np.arange(10)*5 + 6, np.arange(10)*5 + 11)]
 
-starttime = UTCDateTime(2012, 1, 1)
-endtime = UTCDateTime(2014, 3, 1)
+starttime = UTCDateTime(2013, 5, 1)
+endtime = UTCDateTime(2014, 2, 1)
 
 # I could raise the precision level by jointly inverted for all frequencies
 infolder = '/data/whd02/st_helens_peter_archive/corrs_response_removed_longtw/xstations_5_1.0-2.0_wl80.0_1b_SW/'
@@ -79,6 +79,9 @@ for stat in stats:
             except ValueError as e:
                 print(e)
                 continue
+
+            # Extract reference trace
+            
 
             dt = cb.measure_shift(shift_range=1, shift_steps=1001, return_sim_mat=True)
             dt.save(os.path.join(outfolder, f'DT-{dt.stats.id}.npz'))
