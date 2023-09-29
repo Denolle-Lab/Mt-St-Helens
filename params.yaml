@@ -136,6 +136,7 @@ dv:
     end_date : '2023-09-01 23:59:59.0'
     win_len : 86400                         # length of window in which EGFs are stacked
     date_inc : 43200                        # increment of measurements
+    return_sim_mat : False
 
     ### Frequencies
     freq_min : 4

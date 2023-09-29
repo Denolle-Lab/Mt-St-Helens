@@ -71,7 +71,7 @@ rank = comm.Get_rank()
 # otimes = np.array([evt.preferred_origin().time for evt in evts])
 for meth in methods:
     for ii in range(3):
-        if ii != 0:
+        if ii == 2:
             continue
         f = [1/(2**ii), 2/(2**ii)]
 
@@ -103,7 +103,7 @@ for meth in methods:
         options['dv']['win_len'] = win_len
         options['dv']['date_inc'] = date_inc
 
-        dvdir = f'dv/resp_removed_longtw_final_qc/{meth}_{f[0]}-{f[1]}_wl{win_len}_tw{tws}-{tw_len}__1b_mute_SW_presmooth{smoothlen_d}d_mrw91d'
+        dvdir = f'dv/resp_removed_longtw_final_qc/{meth}_{f[0]}-{f[1]}_wl{win_len}_tw{tws}-{tw_len}__1b_mute_SW_presmooth{smoothlen_d}d_srw'
 
         # options['dv']['preprocessing'].append({
         #     'function': 'pop_at_utcs', 'args': {'utcs': otimes}})
@@ -115,7 +115,7 @@ for meth in methods:
         options['dv']['tw_len'] = tw_len
         options['dv']['freq_min'] = f[0]
         options['dv']['freq_max'] = f[1]
-        options['dv']['dt_ref'] = {'win_inc' : 91.5, 'method': 'mean', 'percentile': 50}
+        options['dv']['dt_ref'] = {'win_inc' : 0, 'method': 'mean', 'percentile': 50}
 
         m = Monitor(deepcopy(options))
         m.compute_velocity_change_bulk()

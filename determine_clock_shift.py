@@ -13,6 +13,7 @@ Last Modified: Friday, 29th September 2023 02:42:51 pm
 import os
 import glob
 import fnmatch
+from copy import deepcopy
 
 from obspy import UTCDateTime
 import numpy as np
@@ -28,6 +29,7 @@ stats = [
 ]
 cha = 'EHZ'
 
+# not implemented this way yet
 tw = [[tws, twe] for tws, twe in zip(np.arange(10)*5 + 6, np.arange(10)*5 + 11)]
 
 starttime = UTCDateTime(2012, 1, 1)
@@ -44,26 +46,40 @@ os.makedirs(outfolder, exist_ok=True)
 for stat in stats:
     infiles = glob.glob(os.path.join(infolder, f'{net}-*.{stat}-*.h5'))
     infiles += glob.glob(os.path.join(infolder, f'*-{net}.*-{stat}.h5'))
+    stats2 = deepcopy(stats)
+    stats2.remove(stat)
     # test if the file contains data from two of the affected stations
     for infile in infiles:
-        for stat2 in stats:
-            if stat2 == stat:
-                continue
-            if stat2 in infile:
-                print(infile)
-                continue
+        if any([stat2 in infile for stat2 in stats2]):
+            print(f'skipping {infile}')
+            continue
         netcode, statcode = os.path.basename(infile).split('.')[:-1]
         with CorrDB(infile, mode='r') as cdb:
             chans = cdb.get_available_channels(
                 'subdivision', netcode, statcode)
         chans = fnmatch.filter(chans, f'*{cha}*')
         for chacode in chans:
+            print(
+                f'working on {infile} for {netcode}.{statcode}.{chacode}')
             with CorrDB(infile, mode='r') as cdb:
-                cst = cdb.get_data(
-                    netcode, statcode, chacode, 'subdivision',
-                    corr_start=starttime, corr_end=endtime)
-            cb = cst.create_corr_bulk(inplace=True)
+                try:
+                    cst = cdb.get_data(
+                        netcode, statcode, chacode, 'subdivision')
+                    if cst.count() == 0:
+                        raise IndexError
+                except (KeyError, IndexError):
+                    print(
+                        f'For {netcode}.{statcode}.{chacode} no data is '
+                        f'available between {starttime} and {endtime}'
+                    )
+                    continue
+            try:
+                cb = cst.create_corr_bulk(
+                    inplace=True, times=[starttime, endtime], channel=chacode)
+            except ValueError as e:
+                print(e)
+                continue
 
-            dt = cb.measure_shift(tw=tw, shift_range=1, shift_steps=1001, return_sim_mat=True)
+            dt = cb.measure_shift(shift_range=1, shift_steps=1001, return_sim_mat=True)
             dt.save(os.path.join(outfolder, f'DT-{dt.stats.id}.npz'))
     
