@@ -8,7 +8,7 @@
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Friday, 29th September 2023 02:14:28 pm
-Last Modified: Friday, 29th September 2023 02:42:51 pm
+Last Modified: Friday, 29th September 2023 04:23:54 pm
 '''
 import os
 import glob
@@ -81,8 +81,12 @@ for stat in stats:
                 continue
 
             # Extract reference trace
-            
-
+            starttimes_new = starttime + np.arange(
+                (endtime-starttime)//3600)*3600 
+            endtimes_new = starttimes_new + 3600
+            cb = cb.resample(starttimes_new, endtimes_new)
+            reftr = cb[:90*3600].extract_trace()
+            cb.smooth(24*10)
             dt = cb.measure_shift(shift_range=1, shift_steps=1001, return_sim_mat=True)
             dt.save(os.path.join(outfolder, f'DT-{dt.stats.id}.npz'))
     
