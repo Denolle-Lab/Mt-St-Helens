@@ -66,32 +66,30 @@ options['co']['subdivision'] = {
 
 
 # Fix EDM response removal problem
-options['co']['xcombinations'] = [
-    'UW-UW.EDM-YEL',
-    'UW-UW.EDM-HSR',
-    'UW-UW.EDM-JUN',
-    'UW-UW.EDM-SHW',
-    'UW-UW.EDM-SOS',
-    'UW-UW.EDM-STD',
-    'UW-UW.EDM-SUG',
-    'CC-UW.SEP-EDM',
-    'CC-UW.SUG-EDM',
-    'CC-UW.SUG-EDM',
-    'CC-UW.JRO-EDM',
-    'CC-UW.NED-EDM',
-    'CC-UW.STD-EDM',
-    'CC-UW.SWF2-EDM',
-    'CC-UW.SWFL-EDM',
-    'CC-UW.VALT-EDM',
-    'PB-UW.B202-EDM',
-    'PB-UW.B203-EDM',
-    'PB-UW.B204-EDM',
-]
+# options['co']['xcombinations'] = [
+#     'UW-UW.EDM-YEL',
+#     'UW-UW.EDM-HSR',
+#     'UW-UW.EDM-JUN',
+#     'UW-UW.EDM-SHW',
+#     'UW-UW.EDM-SOS',
+#     'UW-UW.EDM-STD',
+#     'UW-UW.EDM-SUG',
+#     'CC-UW.SEP-EDM',
+#     'CC-UW.SUG-EDM',
+#     'CC-UW.SUG-EDM',
+#     'CC-UW.JRO-EDM',
+#     'CC-UW.NED-EDM',
+#     'CC-UW.STD-EDM',
+#     'CC-UW.SWF2-EDM',
+#     'CC-UW.SWFL-EDM',
+#     'CC-UW.VALT-EDM',
+#     'PB-UW.B202-EDM',
+#     'PB-UW.B203-EDM',
+#     'PB-UW.B204-EDM',
+# ]
 
 # next compute a very broad one with 0.25-4Hz
 for ii in range(3):
-    if ii != 2:
-        continue
     # Set bp: frequency
     f = (1/(2**ii), 2/(2**ii))
     # Length to save in s
@@ -118,19 +116,10 @@ for ii in range(3):
 
     # Decide about preprocessing
     options['co']['preProcessing'] = [
-        {'function': 'seismic.correlate.preprocessing_stream.detrend_st',
-        'args':{'type':'linear'}},
-        # {'function': 'seismic.correlate.preprocessing_stream.stream_mask_at_utc',
-        #     'args': {'starts': utcl,
-        #             'masklen': 300, # seconds
-        #             'reverse': False}},
-        {'function': 'seismic.correlate.preprocessing_stream.cos_taper_st',
-            'args': {'taper_len': 30, # seconds
-                    'lossless': True}},
         {'function': 'seismic.correlate.preprocessing_stream.stream_filter',
             'args': {'ftype':'bandpass',
                     'filter_option': {'freqmin': 0.01,
-                                    'freqmax': fs/2}}}]
+                                    'freqmax': fs/2-.1}}}]
 
 
     options['co']['corr_args']['FDpreProcessing'] = [
@@ -140,12 +129,14 @@ for ii in range(3):
             'args':{'flimit':[f[0]/2,f[0],f[1],fupzero]}}]
 
     options['co']['corr_args']['TDpreProcessing'] = [
-        {'function':'seismic.correlate.preprocessing_td.detrend',
-        'args':{'type':'linear'}},
-        {'function':'seismic.correlate.preprocessing_td.TDfilter',
-        'args':{'type':'bandpass','freqmin':f[0],'freqmax':f[1]}},
-        {'function':'seismic.correlate.preprocessing_td.signBitNormalization',
-        'args': {}}]
+            {'function':'seismic.correlate.preprocessing_td.detrend',
+            'args':{'type':'linear'}},
+            {'function':'seismic.correlate.preprocessing_td.taper',
+            'args':{'type':'cosine_taper', 'p': 0.03}},
+            {'function':'seismic.correlate.preprocessing_td.TDfilter',
+            'args':{'type':'bandpass','freqmin':f[0],'freqmax':f[1]}},
+            {'function':'seismic.correlate.preprocessing_td.signBitNormalization',
+            'args': {}}]
 
 
     options['co']['subdir'] = os.path.join(
