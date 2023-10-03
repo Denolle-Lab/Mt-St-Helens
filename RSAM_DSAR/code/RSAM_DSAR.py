@@ -101,6 +101,21 @@ def VSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N):
     datas.append(vsar)
     return(datas)
 
+def lhVSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N):
+    # compute ratio between different velocities
+    data -= np.mean(data) # detrend('mean')
+    j = freqs_names.index('rsam')
+    mfd = obspy.signal.filter.bandpass(data, freqs[j][0], freqs[j][1], samp_rate)
+    mfd = abs(mfd[:Nm])
+    mfd = mfd.reshape(-1,N).mean(axis=-1)
+    j = freqs_names.index('hf')
+    hfd = obspy.signal.filter.bandpass(data, freqs[j][0], freqs[j][1], samp_rate)
+    hfd = abs(hfd[:Nm])
+    hfd = hfd.reshape(-1,N).mean(axis=-1)
+    vsar = mfd/hfd
+    datas.append(vsar)
+    return(datas)
+
 def DSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N):
     # compute dsar
     data = scipy.integrate.cumtrapz(data, dx=1./100, initial=0) # vel to disp
@@ -126,6 +141,22 @@ def lDSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N):
     lfd = abs(lfd[:Nm])
     lfd = lfd.reshape(-1,N).mean(axis=-1)
     j = freqs_names.index('mf')
+    mfd = obspy.signal.filter.bandpass(data, freqs[j][0], freqs[j][1], samp_rate)
+    mfd = abs(mfd[:Nm])
+    mfd = mfd.reshape(-1,N).mean(axis=-1)
+    ldsar = lfd/mfd
+    datas.append(ldsar)
+    return(datas)
+
+def lhDSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N):
+    # compute dsar for low frequencies
+    data = scipy.integrate.cumtrapz(data, dx=1./100, initial=0) # vel to disp
+    data -= np.mean(data) # detrend('mean')
+    j = freqs_names.index('rsam')
+    lfd = obspy.signal.filter.bandpass(data, freqs[j][0], freqs[j][1], samp_rate)
+    lfd = abs(lfd[:Nm])
+    lfd = lfd.reshape(-1,N).mean(axis=-1)
+    j = freqs_names.index('hf')
     mfd = obspy.signal.filter.bandpass(data, freqs[j][0], freqs[j][1], samp_rate)
     mfd = abs(mfd[:Nm])
     mfd = mfd.reshape(-1,N).mean(axis=-1)
@@ -166,7 +197,7 @@ def freq_bands(jday, year, netstacha):
     sta = netstacha.split('-')[1]
     cha = netstacha.split('-')[2]
     
-    file_path = '/data/wsd03/data_manuela/MtStHelens/RSAM_DSAR/tmp_{}/{}/'.format(year, sta)
+    file_path = '/data/wsd03/data_manuela/MtStHelens/RSAM_DSAR/{}/{}/'.format(year, sta)
     file_name = '{}_{}.csv'.format(sta,jday)
         
     if os.path.isfile(file_path+file_name):
@@ -174,7 +205,7 @@ def freq_bands(jday, year, netstacha):
         pass
     else:    
         start_time = time.time()
-        freqs_names = ['rsam','mf','hf','dsar','ldsar', 'vsar']
+        freqs_names = ['rsam','mf','hf','dsar','ldsar', 'lhdsar', 'vsar', 'lhvsar']
         df = pd.DataFrame(columns=freqs_names)
         daysec = 24*3600
         freqs = [[2,5], [4.5,8], [8,16]]
@@ -201,7 +232,9 @@ def freq_bands(jday, year, netstacha):
 
                 datas = DSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N)
                 datas = lDSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N)
+                datas = lhDSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N)
                 datas = VSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N)
+                datas = lhVSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N)
     #             datas = nDSAR(datas) # --> add ndsar in freqs_names
 
                 datas = noise_analysis(data, datas, samp_rate, N, Nm)
@@ -268,7 +301,7 @@ list_stations = [s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,
                  s15,s16,s17,s18,s19,s20,s21,s22,s23,s24,s25,s26,s27,s28,s29,s30] # make a list of all stations
 
 # list_stations = [s11,s12,s13,s16,s18,s19,s20,s22,s23,s24]
-for year in range(1981,1999+1):
+for year in range(2000,2022+1):
     for netstacha in list_stations:
         print('Station {}'.format(netstacha))
         stime = time.time()
