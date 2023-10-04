@@ -90,6 +90,8 @@ options['co']['subdivision'] = {
 
 # next compute a very broad one with 0.25-4Hz
 for ii in range(3):
+    if ii != 2:
+        continue
     # Set bp: frequency
     f = (1/(2**ii), 2/(2**ii))
     # Length to save in s

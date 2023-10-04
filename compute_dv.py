@@ -71,8 +71,8 @@ rank = comm.Get_rank()
 # otimes = np.array([evt.preferred_origin().time for evt in evts])
 for meth in methods:
     for ii in range(3):
-        if ii == 2:
-            continue
+        # if ii == 2:
+        #     continue
         f = [1/(2**ii), 2/(2**ii)]
 
         tws = np.floor(4/f[0])
@@ -98,12 +98,12 @@ for meth in methods:
 
         # One data point represents 10 days, should be good enough with such
         # a long smoothing
-        date_inc = 3600
-        win_len = 3600
+        date_inc = 7200
+        win_len = 7200
         options['dv']['win_len'] = win_len
         options['dv']['date_inc'] = date_inc
 
-        dvdir = f'dv/resp_removed_longtw_final_qc/{meth}_{f[0]}-{f[1]}_wl{win_len}_tw{tws}-{tw_len}__1b_mute_SW_presmooth{smoothlen_d}d_srw'
+        dvdir = f'dv/resp_removed_longtw_final_qc/{meth}_{f[0]}-{f[1]}_wl{win_len}_tw{tws}-{tw_len}__1b_mute_SW_presmooth{smoothlen_d}d_mrw182d'
 
         # options['dv']['preprocessing'].append({
         #     'function': 'pop_at_utcs', 'args': {'utcs': otimes}})
@@ -115,7 +115,7 @@ for meth in methods:
         options['dv']['tw_len'] = tw_len
         options['dv']['freq_min'] = f[0]
         options['dv']['freq_max'] = f[1]
-        options['dv']['dt_ref'] = {'win_inc' : 0, 'method': 'mean', 'percentile': 50}
+        options['dv']['dt_ref'] = {'win_inc' : 182.5, 'method': 'mean', 'percentile': 50}
 
         m = Monitor(deepcopy(options))
         m.compute_velocity_change_bulk()

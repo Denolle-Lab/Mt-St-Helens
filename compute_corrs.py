@@ -43,9 +43,11 @@ options['co']['subdivision'] = {
 options['co']['remove_response'] = True
 
 for method in ['autoComponents', 'betweenComponents']:
+    if method == 'autoComponents':
+        continue
     options['co']['combination_method'] = method
     for ii in range(3):
-        if ii != 2:
+        if ii == 0:
             continue
         # Set bp: frequency
         f = (1/(2**ii), 2/(2**ii))

@@ -17,6 +17,7 @@ from copy import deepcopy
 
 from obspy import UTCDateTime
 import numpy as np
+from mpi4py import MPI
 
 from seismic.db.corr_hdf5 import CorrelationDataBase as CorrDB
 
@@ -29,28 +30,37 @@ stats = [
 ]
 cha = 'EHZ'
 
-# not implemented this way yet
-tw = [[tws, twe] for tws, twe in zip(np.arange(10)*5 + 6, np.arange(10)*5 + 11)]
+skip = ['SUG', 'SEP']
+
+tw = [[tws, twe] for tws, twe in zip(np.arange(9)*5 + 5, np.arange(9)*5 + 20)]
 
 starttime = UTCDateTime(2013, 5, 1)
 endtime = UTCDateTime(2014, 2, 1)
 
 # I could raise the precision level by jointly inverted for all frequencies
-infolder = '/data/whd02/st_helens_peter_archive/corrs_response_removed_longtw/xstations_5_1.0-2.0_wl80.0_1b_SW/'
+infolder = '/data/wsd01/st_helens_peter/corrs_response_removed_longtw/xstations_5_1.0-2.0_wl80.0_1b_SW/'
 
-outfolder = '/data/wsd01/st_helens_peter/time_shift_estimates'
+outfolder = '/data/wsd01/st_helens_peter/time_shift_estimates_new'
 
 
 os.makedirs(outfolder, exist_ok=True)
 
-for stat in stats:
+comm = MPI.COMM_WORLD
+psize = comm.Get_size()
+rank = comm.Get_rank()
+
+
+for ii, stat in enumerate(stats):
+    if ii % psize != rank:
+        continue
     infiles = glob.glob(os.path.join(infolder, f'{net}-*.{stat}-*.h5'))
     infiles += glob.glob(os.path.join(infolder, f'*-{net}.*-{stat}.h5'))
     stats2 = deepcopy(stats)
     stats2.remove(stat)
     # test if the file contains data from two of the affected stations
     for infile in infiles:
-        if any([stat2 in infile for stat2 in stats2]):
+        if any([stat2 in infile for stat2 in stats2]) or any(
+                [sk in infile for sk in skip]):
             print(f'skipping {infile}')
             continue
         netcode, statcode = os.path.basename(infile).split('.')[:-1]
@@ -81,12 +91,14 @@ for stat in stats:
                 continue
 
             # Extract reference trace
-            starttimes_new = starttime + np.arange(
-                (endtime-starttime)//3600)*3600 
+            starttimes_new = np.array([starttime + dt for dt in np.arange(
+                (endtime-starttime)//3600)*3600]) 
             endtimes_new = starttimes_new + 3600
             cb = cb.resample(starttimes_new, endtimes_new)
             reftr = cb[:90*3600].extract_trace()
             cb.smooth(24*10)
-            dt = cb.measure_shift(shift_range=1, shift_steps=1001, return_sim_mat=True)
+            dt = cb.measure_shift(
+                shift_range=1, shift_steps=1001, return_sim_mat=True,
+                tw=tw)
             dt.save(os.path.join(outfolder, f'DT-{dt.stats.id}.npz'))
     
