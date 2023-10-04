@@ -8,7 +8,7 @@
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Friday, 29th September 2023 02:14:28 pm
-Last Modified: Wednesday, 4th October 2023 10:23:38 am
+Last Modified: Wednesday, 4th October 2023 10:26:48 am
 '''
 import os
 import glob
@@ -70,9 +70,8 @@ for ii, stat in enumerate(stats):
             av_starts = cdb.get_available_starttimes(
                 netcode, statcode, 'subdivision', chans[0]
             )
-            if min(abs(
-                np.array(av_starts[chans[0]]) - UTCDateTime(2013, 9, 3)))\
-                    > 86400:
+            av_starts = np.array([UTCDateTime(x) for x in av_starts[chans[0]]])
+            if min(abs(av_starts - UTCDateTime(2013, 9, 3))) > 86400:
                 print(f'skipping {infile} because of missing data')
                 continue
         chans = fnmatch.filter(chans, f'*{cha}*')
