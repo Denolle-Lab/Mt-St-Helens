@@ -60,7 +60,8 @@ for ii, stat in enumerate(stats):
     # test if the file contains data from two of the affected stations
     for infile in infiles:
         if any([stat2 in infile for stat2 in stats2]) or any(
-                [sk in infile for sk in skip]):
+            [sk in infile for sk in skip]) or fnmatch.fnmatch(
+                os.path.basename(infile), 'CC-*.STD-*.h5'):
             print(f'skipping {infile}')
             continue
         netcode, statcode = os.path.basename(infile).split('.')[:-1]
@@ -102,10 +103,10 @@ for ii, stat in enumerate(stats):
                 (endtime-starttime)//3600)*3600]) 
             endtimes_new = starttimes_new + 3600
             cb = cb.resample(starttimes_new, endtimes_new)
-            reftr = cb[:90*3600].extract_trace()
+            reftr = cb[:90*24].extract_trace()
             cb.smooth(24*10)
             dt = cb.measure_shift(
                 shift_range=1, shift_steps=1001, return_sim_mat=True,
-                tw=tw)
+                tw=tw, ref_trc=reftr)
             dt.save(os.path.join(outfolder, f'DT-{dt.stats.id}.npz'))
     

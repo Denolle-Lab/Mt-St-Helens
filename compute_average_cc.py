@@ -11,7 +11,7 @@ from seismic.monitor.dv import read_dv
 root = '/data/wsd01/st_helens_peter/dv/resp_removed_longtw_final_qc/'
 
 infolder = glob.glob(os.path.join(root, 'autoComponents*wl3600*30d_srw'))[0]
-infolder2 = glob.glob(os.path.join(root, 'autoComponents*_mrw730d'))[0]
+infolder2 = glob.glob(os.path.join(root, 'autoComponents*_mrw182d'))[0]
 
 outdir = '/data/wsd01/st_helens_peter/figures/mrw_srw_compare'
 
