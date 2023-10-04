@@ -8,7 +8,7 @@
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Friday, 29th September 2023 02:14:28 pm
-Last Modified: Wednesday, 4th October 2023 10:26:48 am
+Last Modified: Wednesday, 4th October 2023 01:14:14 pm
 '''
 import os
 import glob
@@ -40,7 +40,7 @@ endtime = UTCDateTime(2014, 2, 1)
 # I could raise the precision level by jointly inverted for all frequencies
 infolder = '/data/wsd01/st_helens_peter/corrs_response_removed_longtw/xstations_5_1.0-2.0_wl80.0_1b_SW/'
 
-outfolder = '/data/wsd01/st_helens_peter/time_shift_estimates_new'
+outfolder = '/data/wsd01/st_helens_peter/time_shift_estimates_twopts'
 
 
 os.makedirs(outfolder, exist_ok=True)
@@ -104,9 +104,12 @@ for ii, stat in enumerate(stats):
             endtimes_new = starttimes_new + 3600
             cb = cb.resample(starttimes_new, endtimes_new)
             reftr = cb[:90*24].extract_trace()
+            cb = cb.resample(
+                np.array([starttime, UTCDateTime(2013, 9, 3)]),
+                np.array([UTCDateTime(2013, 10, 25), endtime])
             cb.smooth(24*10)
             dt = cb.measure_shift(
-                shift_range=1, shift_steps=1001, return_sim_mat=True,
+                shift_range=1, shift_steps=201, return_sim_mat=True,
                 tw=tw, ref_trc=reftr)
             dt.save(os.path.join(outfolder, f'DT-{dt.stats.id}.npz'))
     
