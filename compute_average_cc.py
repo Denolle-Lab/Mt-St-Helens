@@ -10,8 +10,8 @@ from seismic.monitor.dv import read_dv
 
 root = '/data/wsd01/st_helens_peter/dv/resp_removed_longtw_final_qc/'
 
-infolder = glob.glob(os.path.join(root, 'autoComponents*wl3600*30d_srw'))[0]
-infolder2 = glob.glob(os.path.join(root, 'autoComponents*_mrw182d'))[0]
+infolder = glob.glob(os.path.join(root, 'autoComponents_1.0-2.0*wl3600*30d_srw'))[0]
+infolder2 = glob.glob(os.path.join(root, 'autoComponents_1.0-2.0*_mrw182d'))[0]
 
 outdir = '/data/wsd01/st_helens_peter/figures/mrw_srw_compare'
 
@@ -20,7 +20,11 @@ for infile in glob.glob(os.path.join(infolder, '*.npz')):
     infile_basename = os.path.basename(infile)
 
     dv_short = read_dv(infile)
-    dv_stack = read_dv(os.path.join(infolder2, infile_basename))
+    try:
+        dv_stack = read_dv(os.path.join(infolder2, infile_basename))
+    except FileNotFoundError as e:
+        print(e)
+        continue
     starttimes_short = np.array([cs.datetime for cs in dv_short.stats.corr_start])
     starttimes_stack = np.array([cs.datetime for cs in dv_stack.stats.corr_start])
 

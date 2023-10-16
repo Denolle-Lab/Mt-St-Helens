@@ -142,7 +142,7 @@ for ii in range(3):
 
 
     options['co']['subdir'] = os.path.join(
-        'corrs_response_removed_longtw',
+        'corrs_response_removed_newgaphandling_longtw',
         f'xstations_{fs}_{f[0]}-{f[1]}_wl{lts}_1b_SW'
     )
     # Do the actual computation

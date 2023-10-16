@@ -47,7 +47,7 @@ for method in ['autoComponents', 'betweenComponents']:
         continue
     options['co']['combination_method'] = method
     for ii in range(3):
-        if ii == 0:
+        if ii != 2:
             continue
         # Set bp: frequency
         f = (1/(2**ii), 2/(2**ii))

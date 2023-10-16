@@ -50,6 +50,8 @@ rank = comm.Get_rank()
 f = 1.0
 
 for f in 0.25*2**np.arange(3):
+    if f == 0.25:
+        continue
     tlim = 50
     path = glob.glob(
         f'/data/wsd01/st_helens_peter/corrs_response_removed_longtw/xstations_*_{f}-{f*2}*')[0]

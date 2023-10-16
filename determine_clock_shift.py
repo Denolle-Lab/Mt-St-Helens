@@ -34,13 +34,13 @@ skip = ['SUG', 'SEP']
 
 tw = [[tws, twe] for tws, twe in zip(np.arange(9)*5 + 5, np.arange(9)*5 + 20)]
 
-starttime = UTCDateTime(2013, 5, 1)
-endtime = UTCDateTime(2014, 2, 1)
+starttime = UTCDateTime(2018, 5, 1)
+endtime = UTCDateTime(2019, 3, 1)
 
 # I could raise the precision level by jointly inverted for all frequencies
 infolder = '/data/wsd01/st_helens_peter/corrs_response_removed_longtw/xstations_5_1.0-2.0_wl80.0_1b_SW/'
 
-outfolder = '/data/wsd01/st_helens_peter/time_shift_estimates_twopts'
+outfolder = '/data/wsd01/st_helens_peter/time_shift_estimates_2018_1.0-2.0'
 
 
 os.makedirs(outfolder, exist_ok=True)
@@ -60,8 +60,7 @@ for ii, stat in enumerate(stats):
     # test if the file contains data from two of the affected stations
     for infile in infiles:
         if any([stat2 in infile for stat2 in stats2]) or any(
-            [sk in infile for sk in skip]) or fnmatch.fnmatch(
-                os.path.basename(infile), 'CC-*.STD-*.h5'):
+            [sk in infile for sk in skip]):
             print(f'skipping {infile}')
             continue
         netcode, statcode = os.path.basename(infile).split('.')[:-1]
@@ -72,7 +71,7 @@ for ii, stat in enumerate(stats):
                 netcode, statcode, 'subdivision', chans[0]
             )
             av_starts = np.array([UTCDateTime(x) for x in av_starts[chans[0]]])
-            if min(abs(av_starts - UTCDateTime(2013, 9, 3))) > 86400:
+            if min(abs(av_starts - UTCDateTime(2018, 9, 3))) > 8640000:
                 print(f'skipping {infile} because of missing data')
                 continue
         chans = fnmatch.filter(chans, f'*{cha}*')
@@ -104,9 +103,9 @@ for ii, stat in enumerate(stats):
             endtimes_new = starttimes_new + 3600
             cb = cb.resample(starttimes_new, endtimes_new)
             reftr = cb[:90*24].extract_trace()
-            cb = cb.resample(
-                np.array([starttime, UTCDateTime(2013, 9, 3)]),
-                np.array([UTCDateTime(2013, 10, 25), endtime])
+            # cb = cb.resample(
+            #     np.array([starttime, UTCDateTime(2013, 9, 3)]),
+            #     np.array([UTCDateTime(2013, 10, 25), endtime]))
             cb.smooth(24*10)
             dt = cb.measure_shift(
                 shift_range=1, shift_steps=201, return_sim_mat=True,

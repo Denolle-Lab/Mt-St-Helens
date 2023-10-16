@@ -7,7 +7,7 @@ from mpi4py import MPI
 from seismic.db.corr_hdf5 import CorrelationDataBase
 
 outfolder = '../../figures/autcorrs_resp_removed_qc'
-indir = '/data/wsd01/st_helens_peter/corrs_response_actually_removed/autoComponents_5_1.0-2.0_wl70.0_1b'
+indir = '/data/wsd01/st_helens_peter/corrs_response_removed/autoComponents_5_1.0-2.0_wl70.0_1b'
 
 stack_len_d = 60
 

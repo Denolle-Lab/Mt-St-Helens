@@ -9,22 +9,22 @@ from seismic.monitor.dv import read_dv
 
 
 # corrupt stations
-skip = ['NED', 'SEP']
-cut = ['EDM', 'FL2', 'HSR', 'JUN', 'SHW', 'SOS', 'STD']
+# skip = ['NED', 'SEP']
+# cut = ['EDM', 'FL2', 'HSR', 'JUN', 'SHW', 'SOS', 'STD']
 cutend = UTCDateTime(2014, 1, 1)
 
-files = glob.glob('/data/wsd01/st_helens_peter/dv/resp_removed_longtw_final/*Components*60d*_srw/*.npz')
+files = glob.glob('/data/wsd01/st_helens_peter/dv/new_gap_handling/xstations*60d*_srw/*.npz')
 
 for infile in files:
-    for skipfile in skip:
-        if skipfile in infile:
-            continue
+    # for skipfile in skip:
+    #     if skipfile in infile:
+    #         continue
     dv = read_dv(infile)
-    for cutfile in cut:
-        if cutfile in infile:
-            ij = np.argmin(abs(np.array(dv.stats.starttime) - cutend))
-            dv.corr[:ij] += np.nan
-            dv.value[:ij] += np.nan
+    # for cutfile in cut:
+    #     if cutfile in infile:
+    #         ij = np.argmin(abs(np.array(dv.stats.starttime) - cutend))
+    #         dv.corr[:ij] += np.nan
+    #         dv.value[:ij] += np.nan
     dv.value = np.hstack((0, np.diff(dv.value)))
     dv.corr[1:] += dv.corr[:-1]
     dv.corr *= .5
