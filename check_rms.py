@@ -82,7 +82,7 @@ def compute_rms(station):
         if rank == 0:
             print(win[0].stats.starttime.year, win[0].stats.starttime.julday)
     starttimes = comm.reduce(starttimes, op=MPI.SUM, root=0)
-    rms = comm.reduce(starttimes, op=MPI.SUM, root=0)
+    rms = comm.reduce(rms, op=MPI.SUM, root=0)
     if rank == 0:
         rms = [x for _, x in sorted(zip(starttimes, rms))]
         starttimes = sorted(starttimes)

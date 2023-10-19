@@ -72,8 +72,8 @@ def main(filter, plot):
                 os.rename(
                     movefrom[0],
                     moveto)
-            remove_from_corrdb(
-                network, station, 'EHZ', starttimes_mustang + starttimes_rms)
+            # remove_from_corrdb(
+            #     network, station, 'EHZ', starttimes_mustang + starttimes_rms)
 
 
 def plot_data(st, kind):
