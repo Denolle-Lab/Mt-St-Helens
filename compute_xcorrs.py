@@ -57,6 +57,7 @@ options = comm.bcast(options, root=0)
 
 options['save_comps_separately'] = False
 options['co']['combination_method'] = 'betweenStations'
+options['co']['preprocess_subdiv'] = True
 
 options['co']['subdivision'] = {
     'corr_inc': 3600,
@@ -66,31 +67,31 @@ options['co']['subdivision'] = {
 
 
 # Fix EDM response removal problem
-# options['co']['xcombinations'] = [
-#     'UW-UW.EDM-YEL',
-#     'UW-UW.EDM-HSR',
-#     'UW-UW.EDM-JUN',
-#     'UW-UW.EDM-SHW',
-#     'UW-UW.EDM-SOS',
-#     'UW-UW.EDM-STD',
-#     'UW-UW.EDM-SUG',
-#     'CC-UW.SEP-EDM',
-#     'CC-UW.SUG-EDM',
-#     'CC-UW.SUG-EDM',
-#     'CC-UW.JRO-EDM',
-#     'CC-UW.NED-EDM',
-#     'CC-UW.STD-EDM',
-#     'CC-UW.SWF2-EDM',
-#     'CC-UW.SWFL-EDM',
-#     'CC-UW.VALT-EDM',
-#     'PB-UW.B202-EDM',
-#     'PB-UW.B203-EDM',
-#     'PB-UW.B204-EDM',
-# ]
+options['co']['xcombinations'] = [
+    'CC-UW.JRO-EDM',
+    'CC-UW.NED-EDM',
+    'CC-UW.SEP-EDM',
+    'CC-UW.STD-EDM',
+    'CC-UW.SUG-EDM',
+    'CC-UW.SWF2-EDM',
+    'CC-UW.SWFL-EDM',
+    'CC-UW.VALT-EDM',
+    'PB-UW.B202-EDM',
+    'PB-UW.B203-EDM',
+    'PB-UW.B204-EDM',
+    'UW-UW.EDM-FL2',
+    'UW-UW.EDM-HSR',
+    'UW-UW.EDM-JUN',
+    'UW-UW.EDM-SHW',
+    'UW-UW.EDM-SOS',
+    'UW-UW.EDM-STD',
+    'UW-UW.EDM-SUG',
+    'UW-UW.EDM-YEL'
+]
 
 # next compute a very broad one with 0.25-4Hz
 for ii in range(3):
-    if ii != 2:
+    if ii == 0:
         continue
     # Set bp: frequency
     f = (1/(2**ii), 2/(2**ii))

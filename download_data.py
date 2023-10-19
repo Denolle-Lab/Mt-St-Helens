@@ -22,11 +22,12 @@ c = Client()
 
 
 
-nets = ['CC']*8 + ['PB']*3 + ['UW']*7
-stats = ['NED', 'SEP', 'STD', 'SUG', 'SWFL', 'SWF2', 'VALT', 'JRO']\
-    + ['B202', 'B203', 'B204']\
-    + ['EDM', 'FL2', 'HSR', 'JUN', 'SHW', 'SOS', 'STD']
-
+# nets = ['CC']*8 + ['PB']*3 + ['UW']*7
+# stats = ['NED', 'SEP', 'STD', 'SUG', 'SWFL', 'SWF2', 'VALT', 'JRO']\
+#     + ['B202', 'B203', 'B204']\
+#     + ['EDM', 'FL2', 'HSR', 'JUN', 'SHW', 'SOS', 'STD']
+nets = ['CC']*6 + ['UW'] + ['PB']
+stats = ['HOA', 'LOO', 'MAR', 'NFT', 'REM', 'UNFR', 'CDF', 'B201']
 
 start = UTCDateTime(1998, 1, 1)
 end = UTCDateTime.now()
@@ -36,13 +37,14 @@ logger = logging.getLogger("obspy.clients.fdsn.mass_downloader")
 # logger.setLevel(logging.WARNING)
 root = '/data/wsd01/st_helens_peter'
 sc = Store_Client(c, root, read_only=False)
-# for net, stat in zip(nets, stats):
-net = 'UW'
-stat = 'EDM'
 for net, stat in zip(nets, stats):
     print(
         f'downloading data for {net}.{stat}'
     )
+    if stat == 'B201':
+        cha = 'EH?'
+    else:
+        cha = '?H?'
     sc.download_waveforms_mdl(
         start, end, clients=[c], network=net, station=stat, location='*',
-        channel='?H?')
+        channel=cha)

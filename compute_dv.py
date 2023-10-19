@@ -72,7 +72,7 @@ rank = comm.Get_rank()
 # otimes = np.array([evt.preferred_origin().time for evt in evts])
 for meth in methods:
     for ii in range(3):
-        if ii == 2:
+        if ii != 0:
             continue
         f = [1/(2**ii), 2/(2**ii)]
 
@@ -97,14 +97,14 @@ for meth in methods:
                 f[1] = int(f[1])
             corrdir = glob.glob(f'corrs_response_removed/{meth}_*_{f[0]}-{f[1]}*')[0]
 
-        # One data point represents 10 days, should be good enough with such
+        # One data point represents 5 days, should be good enough with such
         # a long smoothing
-        date_inc = 3600
-        win_len = 3600
+        date_inc = 432000
+        win_len = 432000
         options['dv']['win_len'] = win_len
         options['dv']['date_inc'] = date_inc
 
-        dvdir = f'dv/old_processng_test/{meth}_td_taper_no_gap_interp_{f[0]}-{f[1]}_wl{win_len}_tw{tws}-{tw_len}__1b_mute_SW_presmooth{smoothlen_d}d_srw'
+        dvdir = f'dv/new_gap_handling/{meth}_td_taper_no_gap_interp_{f[0]}-{f[1]}_wl{win_len}_tw{tws}-{tw_len}__1b_mute_SW_presmooth{smoothlen_d}d_srw'
 
         # options['dv']['preprocessing'].append({
         #     'function': 'pop_at_utcs', 'args': {'utcs': otimes}})

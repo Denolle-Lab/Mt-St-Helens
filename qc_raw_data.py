@@ -24,6 +24,7 @@ from seismic.db.corr_hdf5 import CorrelationDataBase
 
 network = 'UW'
 stations = ['FL2', 'HSR', 'JUN', 'SHW', 'SOS', 'STD', 'SUG', 'YEL', 'EDM']
+stations = ['CDF']
 rms_file = '/data/wsd01/st_helens_peter/rms/rms_{station}.npz'
 mustang_url = 'https://services.iris.edu/mustang/measurements/1/query?metric=max_range&net={network}&sta={station}&cha={channel}&output=xml&timewindow=1998-01-01T00:00:00,2023-09-07T00:00:00&nodata=404'
 mseed = '/data/wsd01/st_helens_peter/mseed/{year}/{network}/{station}/{channel}.D/{network}.{station}.{location}.{channel}.D.{year}.{jday}'

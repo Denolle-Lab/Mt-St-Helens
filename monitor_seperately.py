@@ -37,10 +37,10 @@ with open(yaml_f) as file:
 
 # These are the analogue stations. Make sure to compute once after the split
 # time and once before the split time
-nets = ['CC'] + ['UW']*8
-stats = ['SEP', 'EDM', 'HSR', 'FL2', 'HSR', 'JUN', 'SOS', 'SHW', 'STD']
+nets = ['CC'] + ['UW']*11
+stats = ['SEP', 'CDF', 'EDM', 'HSR', 'FL2', 'HSR', 'JUN', 'SOS', 'SUG', 'SHW', 'STD', 'YEL']
 combs = compute_network_station_combinations(nets, stats)
-unwanted_combs = [f'{unet}.{ustat}.h5' for unet, ustat in zip(nets, stats)]
+unwanted_combs = [f'{unet}.{ustat}.h5' for unet, ustat in zip(combs[0], combs[1])]
 
 # calcualte all 
 
@@ -53,8 +53,6 @@ psize = comm.Get_size()
 rank = comm.Get_rank()
 
 for fmin in freqmins:
-    if fmin == 0.25:
-        break
     infolder_now = glob.glob(infolder.format(freqmin=fmin, freqmax=2*fmin))[0]
 
     # find matching files
@@ -86,7 +84,7 @@ for fmin in freqmins:
     options['dv']['date_inc'] = date_inc
 
     read_start = deepcopy(options['dv']['start_date'])[:10]
-    dvdir = f'dv/dv_separately/{read_start}'
+    dvdir = f'dv/dv_separately/xstations_{fmin}-{2*fmin}_{read_start}'
 
     options['dv']['preprocessing'][0]['args']['wsize'] = int(smoothlen_d/(date_inc/86400))  # Less smoothing for more precise drop check
     options['dv']['subdir'] = dvdir
@@ -117,7 +115,7 @@ for fmin in freqmins:
             'start_date' : str(split_date+864000),
             'end_date' : str(end_date)})
         read_start = deepcopy(options['dv']['start_date'])[:10]
-        dvdir = f'dv/dv_separately/{read_start}'
+        dvdir = f'dv/dv_separately/xstations_{fmin}-{2*fmin}_{read_start}'
         options['dv']['subdir'] = dvdir
         options['fig_subdir'] = dvdir + '_fig'
 

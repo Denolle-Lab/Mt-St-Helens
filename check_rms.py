@@ -26,6 +26,7 @@ stations = []
 for infile in glob.glob(infolder):
     stations.append(os.path.basename(os.path.dirname(infile)))
 stations = np.unique(stations)
+stations = ['CDF']
 
 infolder = '/data/wsd01/st_helens_peter/mseed/*/UW/{station}/EHZ.D/*'
 inventory = '/data/wsd01/st_helens_peter/inventory/UW.{station}.xml'
@@ -35,26 +36,26 @@ psize = comm.Get_size()
 rank = comm.Get_rank()
 
 
-def main():
+def main(plot: bool):
     for ii, station in enumerate(stations):
-        if ii % psize != rank:
-            continue
         outfolder = '/data/wsd01/st_helens_peter/rms'
         os.makedirs(outfolder, exist_ok=True)
         outfile = os.path.join(
             outfolder, 'rms_{station}.npz'.format(station=station))
         if not os.path.exists(outfile):
             rms, starttimes = compute_rms(station)
-            np.savez(
-                outfile, rms=rms, starttimes=[st.timestamp for st in starttimes])
-        else:
+            if rank == 0:
+                np.savez(
+                    outfile, rms=rms, starttimes=[st.timestamp for st in starttimes])
+        elif plot and rank == 0:
             data = np.load(outfile)
             rms = data['rms']
             starttimes = data['starttimes']
-        plot_rms(starttimes, rms, station)
-        plt.savefig(
-            os.path.join(outfolder, 'rms_{station}.png'.format(station=station)), dpi=300)
-        plt.close()
+        if plot and rank == 0:
+            plot_rms(starttimes, rms, station)
+            plt.savefig(
+                os.path.join(outfolder, 'rms_{station}.png'.format(station=station)), dpi=300)
+            plt.close()
 
 
 def generate_data(station):
@@ -66,9 +67,11 @@ def compute_rms(station):
     rms = []
     starttimes = []
     inv = read_inventory(inventory.format(station=station))
-    for win in generate_data(station):
-        win = win.merge()
+    for ii, win in enumerate(generate_data(station)):
+        if ii % psize != rank:
+            continue
         try:
+            win = win.merge()
             win.remove_response(inventory=inv)
             win.detrend()
             win.filter('highpass', freq=0.01)
@@ -76,7 +79,14 @@ def compute_rms(station):
         except Exception:
             rms.append(np.nan)
         starttimes.append(win[0].stats.starttime)
-    return rms, starttimes
+        if rank == 0:
+            print(win[0].stats.starttime.year, win[0].stats.starttime.julday)
+    starttimes = comm.reduce(starttimes, op=MPI.SUM, root=0)
+    rms = comm.reduce(starttimes, op=MPI.SUM, root=0)
+    if rank == 0:
+        rms = [x for _, x in sorted(zip(starttimes, rms))]
+        starttimes = sorted(starttimes)
+        return rms, starttimes
 
 
 def plot_rms(starttimes, rms, station):
@@ -96,4 +106,4 @@ def plot_rms(starttimes, rms, station):
     # plt.ylim((0, np.nanmean(rms)))
 
 
-main()
+main(True)
