@@ -18,6 +18,7 @@ from obspy import read, read_inventory
 import numpy as np
 
 from seismic.utils.miic_utils import resample_or_decimate, gap_handler, stream_require_dtype
+from seismic.correlate.preprocessing_stream import detrend_st
 
 infolder = '/data/wsd01/st_helens_peter/mseed'
 outfolder = '/data/wsd01/st_helens_peter/mseed_preprocessed'
@@ -34,26 +35,33 @@ size = comm.Get_size()
 def main():
     inv = read_inventory(inventory)
     for ii, infile in enumerate(
-        glob.glob(os.path.join(infolder, '*', '*', '*', '*', '*'))):
+            glob.glob(os.path.join(infolder, '*', '*', '*', '*', '*'))):
         if ii % size != rank:
             continue
+        print(infile)
         st = read(infile)
-        st = resample_or_decimate(st, 10)
-        st.split()
-        st = st.detrend('linear')
-        st = gap_handler(st, max_interpolation_length=1, taper_len=20)
-        st.remove_response(inventory=inv, output='VEL', taper=False)
-        st = stream_require_dtype(st, np.float32)
-        outfile = os.path.join(
-            outfolder,
-            SDS_FMTSTR.format(
-                year=st[0].stats.starttime.year,
-                network=st[0].stats.network,
-                station=st[0].stats.station,
-                channel=st[0].stats.channel,
-                location=st[0].stats.location,
-                sds_type='D',
-                doy=st[0].stats.starttime.julday)
-        )
-        os.makedirs(os.path.dirname(outfile), exist_ok=True)
-        st.write(outfile, format='MSEED')
+        try:
+            st = resample_or_decimate(st, 10)
+            st.split()
+            st = detrend_st(st, 'linear')
+            st = gap_handler(st, max_interpolation_length=1, retain_len=80, taper_len=20)
+            if not st[0].stats.station == 'EDM' and st[0].stats.channel == 'EHZ':
+                st.remove_response(inventory=inv, output='VEL', taper=False)
+            stream_require_dtype(st, np.float32)
+            outfile = os.path.join(
+                outfolder,
+                SDS_FMTSTR.format(
+                    year=st[0].stats.starttime.year,
+                    network=st[0].stats.network,
+                    station=st[0].stats.station,
+                    channel=st[0].stats.channel,
+                    location=st[0].stats.location,
+                    sds_type='D',
+                    doy=st[0].stats.starttime.julday)
+            )
+            os.makedirs(os.path.dirname(outfile), exist_ok=True)
+            st.write(outfile, format='MSEED')
+        except Exception as e:
+            print(f'Error for {infile}', e)
+
+main()
