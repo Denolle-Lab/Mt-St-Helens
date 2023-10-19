@@ -8,7 +8,7 @@
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Thursday, 19th October 2023 12:10:39 pm
-Last Modified: Thursday, 19th October 2023 02:43:04 pm
+Last Modified: Thursday, 19th October 2023 02:47:14 pm
 '''
 import glob
 from mpi4py import MPI
@@ -27,10 +27,16 @@ SDS_FMTSTR = os.path.join(
     "{year}", "{network}", "{station}", "{channel}.{sds_type}",
     "{network}.{station}.{location}.{channel}.{sds_type}.{year}.{doy:03d}")
 
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+size = comm.Get_size()
 
 def main():
     inv = read_inventory(inventory)
-    for infile in glob.glob(os.path.join(infolder, '*', '*', '*', '*', '*')):
+    for ii, infile in enumerate(
+        glob.glob(os.path.join(infolder, '*', '*', '*', '*', '*'))):
+        if ii % size != rank:
+            continue
         st = read(infile)
         st = resample_or_decimate(st, 10)
         st.split()
@@ -49,4 +55,5 @@ def main():
                 sds_type='D',
                 doy=st[0].stats.starttime.julday)
         )
+        os.makedirs(os.path.dirname(outfile), exist_ok=True)
         st.write(outfile, format='MSEED')
