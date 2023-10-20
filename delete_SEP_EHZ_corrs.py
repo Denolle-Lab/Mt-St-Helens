@@ -8,24 +8,34 @@
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Tuesday, 19th September 2023 03:09:49 pm
-Last Modified: Tuesday, 19th September 2023 03:20:11 pm
+Last Modified: Friday, 20th October 2023 02:05:53 pm
 '''
 import glob
 import os
 import fnmatch
 
+from mpi4py import MPI
+
 from seismic.db.corr_hdf5 import CorrelationDataBase
 
-infile = '/data/wsd01/st_helens_peter/corrs_response_removed_longtw/*/*VALT*.h5'
+infile = '/data/wsd01/st_helens_peter/corrs_response_removed_newgaphandlng_longtw/*/*SEP*.h5'
 
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+size = comm.Get_size()
 
-for file in glob.glob(infile):
+for ii, file in enumerate(glob.glob(infile)):
+    if ii % size != rank:
+        continue
     network, station = os.path.basename(file).split('.')[:-1]
     print(file)
     with CorrelationDataBase(file, mode='r') as corrdb:
         co = corrdb.get_corr_options()
         chans = corrdb.get_available_channels('subdivision', network, station)
-    remove_chans = fnmatch.filter(chans, '*LH*')
+    if station[:3] == 'SEP':
+        remove_chans = fnmatch.filter(chans, 'EHZ-???')
+    else:
+        remove_chans = fnmatch.filter(chans, '???-EHZ')
     if len(remove_chans) == 0:
         continue
     print(remove_chans)
