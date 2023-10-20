@@ -53,6 +53,8 @@ psize = comm.Get_size()
 rank = comm.Get_rank()
 
 for fmin in freqmins:
+    if fmin != 1:
+        continue
     infolder_now = glob.glob(infolder.format(freqmin=fmin, freqmax=2*fmin))[0]
 
     # find matching files

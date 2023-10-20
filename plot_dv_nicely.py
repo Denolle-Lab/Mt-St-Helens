@@ -14,7 +14,7 @@ from seismic.monitor.dv import read_dv
 #     #     continue
 #     freq = [1/(2**ii), 2/(2**ii)]
 infolders = glob.glob(
-    f'/data/wsd01/st_helens_peter/dv/new_gap_handling/xstations_td_taper_no_gap_interp_*_wl432000_*_1b_mute_SW_presmooth30d_srw')
+    f'/data/wsd01/st_helens_peter/dv/dv_seperately/xstations_1.0-2.0*') #_td_taper_no_gap_interp_*_wl432000_*_1b_mute_SW_presmooth30d_srw')
 for infolder in infolders:
     if 'fig' in infolder:
         continue

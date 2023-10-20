@@ -38,6 +38,19 @@ def main():
             glob.glob(os.path.join(infolder, '*', '*', '*', '*', '*'))):
         if ii % size != rank:
             continue
+        network, station, location, channel, sds_type, year, doy = os.path.basename(infile).split('.')
+        outfile = os.path.join(
+                outfolder,
+                SDS_FMTSTR.format(
+                    year=int(year),
+                    network=network,
+                    station=station,
+                    channel=channel,
+                    location=location,
+                    sds_type=sds_type,
+                    doy=int(doy)))
+        if os.path.isfile(outfile):
+            continue
         print(infile)
         st = read(infile)
         try:
@@ -48,18 +61,8 @@ def main():
             if not st[0].stats.station == 'EDM' and st[0].stats.channel == 'EHZ':
                 st.remove_response(inventory=inv, output='VEL', taper=False)
             stream_require_dtype(st, np.float32)
-            outfile = os.path.join(
-                outfolder,
-                SDS_FMTSTR.format(
-                    year=st[0].stats.starttime.year,
-                    network=st[0].stats.network,
-                    station=st[0].stats.station,
-                    channel=st[0].stats.channel,
-                    location=st[0].stats.location,
-                    sds_type='D',
-                    doy=st[0].stats.starttime.julday)
-            )
             os.makedirs(os.path.dirname(outfile), exist_ok=True)
+            st = st.split()
             st.write(outfile, format='MSEED')
         except Exception as e:
             print(f'Error for {infile}', e)
