@@ -41,14 +41,11 @@ options['co']['subdivision'] = {
     'delete_subdivision': False}
 
 options['co']['remove_response'] = True
+options['co']['preprocess_subdiv'] = True
 
 for method in ['autoComponents', 'betweenComponents']:
-    if method == 'autoComponents':
-        continue
     options['co']['combination_method'] = method
     for ii in range(3):
-        if ii != 2:
-            continue
         # Set bp: frequency
         f = (1/(2**ii), 2/(2**ii))
         # Length to save in s

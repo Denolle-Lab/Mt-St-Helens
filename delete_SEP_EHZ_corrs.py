@@ -18,11 +18,13 @@ from mpi4py import MPI
 
 from seismic.db.corr_hdf5 import CorrelationDataBase
 
-infile = '/data/wsd01/st_helens_peter/corrs_response_removed_newgaphandlng_longtw/*/*SEP*.h5'
+infile = '/data/wsd01/st_helens_peter/corrs_response_removed_newgaphandling_longtw/*/*SEP*.h5'
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
+
+print(glob.glob(infile))
 
 for ii, file in enumerate(glob.glob(infile)):
     if ii % size != rank:

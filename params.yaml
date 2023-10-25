@@ -20,6 +20,7 @@ net:
 
 #### parameters for correlation (emperical Green's function creation)
 co:
+    # because response has already been removed before
     # subdirectory of 'proj_dir' to store correlation
     # type: string
     subdir : 'corr_response_removed'

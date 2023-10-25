@@ -57,7 +57,7 @@ options = comm.bcast(options, root=0)
 
 options['save_comps_separately'] = False
 options['co']['combination_method'] = 'betweenStations'
-options['co']['preprocess_subdiv'] = True
+options['co']['preprocess_subdiv'] = False
 
 options['co']['subdivision'] = {
     'corr_inc': 3600,
@@ -65,9 +65,21 @@ options['co']['subdivision'] = {
     'recombine_subdivision': False,
     'delete_subdivision': False}
 
+options['net']['network'] = '*'
+options['net']['station'] = '*'
+
+# save RAM usage always only use data from two networks
+
 
 # Fix EDM response removal problem
 options['co']['xcombinations'] = [
+    'CC-PB.JRO-B201',
+    'CC-PB.NED-B201',
+    'CC-PB.STD-B201',
+    'CC-PB.SUG-B201',
+    'CC-PB.SWF2-B201',
+    'CC-PB.SWFL-B201',
+    'CC-PB.VALT-B201',
     'CC-UW.JRO-EDM',
     'CC-UW.NED-EDM',
     'CC-UW.SEP-EDM',
@@ -76,6 +88,16 @@ options['co']['xcombinations'] = [
     'CC-UW.SWF2-EDM',
     'CC-UW.SWFL-EDM',
     'CC-UW.VALT-EDM',
+    'PB-PB.B201-B202',
+    'PB-PB.B201-B203',
+    'PB-PB.B201-B204',
+    'PB-UW.B201-EDM',
+    'PB-UW.B201-FL2',
+    'PB-UW.B201-HSR',
+    'PB-UW.B201-JUN',
+    'PB-UW.B201-SHW',
+    'PB-UW.B201-SOS',
+    'PB-UW.B201-STD',
     'PB-UW.B202-EDM',
     'PB-UW.B203-EDM',
     'PB-UW.B204-EDM',
@@ -86,13 +108,75 @@ options['co']['xcombinations'] = [
     'UW-UW.EDM-SOS',
     'UW-UW.EDM-STD',
     'UW-UW.EDM-SUG',
-    'UW-UW.EDM-YEL'
+    'UW-UW.EDM-YEL',
 ]
 
-# next compute a very broad one with 0.25-4Hz
+# plus all the REM combinations, but we will do these in a separate computation
+
+    # we need to do that to save some RAM
 for ii in range(3):
     if ii == 0:
-        continue
+        # startdate of PB.B201, UW.EDM is already computed
+        options['co']['xcombinations'] = [
+            'CC-PB.JRO-B201',
+            'CC-PB.NED-B201',
+            'CC-PB.STD-B201',
+            'CC-PB.SUG-B201',
+            'CC-PB.SWF2-B201',
+            'CC-PB.SWFL-B201',
+            'CC-PB.VALT-B201',
+            'PB-PB.B201-B202',
+            'PB-PB.B201-B203',
+            'PB-PB.B201-B204',
+            'PB-UW.B201-EDM',
+            'PB-UW.B201-FL2',
+            'PB-UW.B201-HSR',
+            'PB-UW.B201-JUN',
+            'PB-UW.B201-SHW',
+            'PB-UW.B201-SOS',
+            'PB-UW.B201-STD',
+        ]
+        options['co']['read_start'] = '2007-09-12 00:00:01.0'
+    else:
+        options['co']['read_start'] = '1997-06-01 00:00:01.0'
+        options['co']['xcombinations'] = [
+            'CC-PB.JRO-B201',
+            'CC-PB.NED-B201',
+            'CC-PB.STD-B201',
+            'CC-PB.SUG-B201',
+            'CC-PB.SWF2-B201',
+            'CC-PB.SWFL-B201',
+            'CC-PB.VALT-B201',
+            'CC-UW.JRO-EDM',
+            'CC-UW.NED-EDM',
+            'CC-UW.SEP-EDM',
+            'CC-UW.STD-EDM',
+            'CC-UW.SUG-EDM',
+            'CC-UW.SWF2-EDM',
+            'CC-UW.SWFL-EDM',
+            'CC-UW.VALT-EDM',
+            'PB-PB.B201-B202',
+            'PB-PB.B201-B203',
+            'PB-PB.B201-B204',
+            'PB-UW.B201-EDM',
+            'PB-UW.B201-FL2',
+            'PB-UW.B201-HSR',
+            'PB-UW.B201-JUN',
+            'PB-UW.B201-SHW',
+            'PB-UW.B201-SOS',
+            'PB-UW.B201-STD',
+            'PB-UW.B202-EDM',
+            'PB-UW.B203-EDM',
+            'PB-UW.B204-EDM',
+            'UW-UW.EDM-FL2',
+            'UW-UW.EDM-HSR',
+            'UW-UW.EDM-JUN',
+            'UW-UW.EDM-SHW',
+            'UW-UW.EDM-SOS',
+            'UW-UW.EDM-STD',
+            'UW-UW.EDM-SUG',
+            'UW-UW.EDM-YEL',
+        ]
     # Set bp: frequency
     f = (1/(2**ii), 2/(2**ii))
     # Length to save in s
