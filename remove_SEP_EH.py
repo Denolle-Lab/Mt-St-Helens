@@ -47,6 +47,7 @@ def main():
         elif fnmatch.fnmatch(infile, '*-CC.*-SEP.h5'):
             chafilt = '*-EH?'
         net, stat = os.path.basename(infile).split('.')[:-1]
+        print(f'working on {infile}')
         delete_corr_from_corrdb(infile, net, stat, chafilt, '*')
     
 
@@ -54,9 +55,11 @@ def delete_corr_from_corrdb(infile, net, stat, chafilt, start):
     with CorrDB(infile, mode='r') as cdb:
         co = cdb.get_corr_options()
         chans = cdb.get_available_channels(
-            'subdivision', f'{net}-{net}', f'{stat}-{stat}')
+            'subdivision', net, stat)
+    print(f'available channels: {chans}')
     for cha in chans:
         if not fnmatch.fnmatch(cha, chafilt):
+            print(f'{cha} will not be deleted.')
             continue
         print(f'Deleting {cha} from {infile}...')
         with CorrDB(infile, mode='a', corr_options=co) as cdb:
