@@ -26,7 +26,7 @@ options['net'] = {'network': '*', 'station': '*'}
 
 os.chdir('/data/wsd01/st_helens_peter')
 
-methods = ['autoComponents', 'betweenComponents']
+# methods = ['autoComponents', 'betweenComponents']
 methods = ['xstations']
 # methods = ['autoComponents']
 # methods = ['betweenComponents']
@@ -85,7 +85,7 @@ for meth in methods:
         if meth == 'xstations':
             corrdir = glob.glob(f'/data/wsd01/st_helens_peter/corrs_response_removed_newgaphandling_longtw/xstations_*{f[0]}-{f[1]}*')
         else:
-            corrdir = glob.glob(f'/data/wsd01/st_helens_peter/corr_auto_response_removed_td_taper_no_gap_interp_vs_1-2Hz')
+            corrdir = glob.glob(f'/data/wsd01/st_helens_peter/corrs_response_removed/{meth}_*_{f[0]}-{f[1]}*')
         if len(corrdir) > 1:
             raise ValueError('ambiguous correlation directory')
         try:
@@ -117,6 +117,7 @@ for meth in methods:
         options['dv']['freq_min'] = f[0]
         options['dv']['freq_max'] = f[1]
         options['dv']['dt_ref'] = {'win_inc' : 0, 'method': 'mean', 'percentile': 50}
+        options['dv']['plot_vel_change'] = False
 
         m = Monitor(deepcopy(options))
         m.compute_velocity_change_bulk()

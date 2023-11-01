@@ -34,6 +34,9 @@ sc = Store_Client(client, root, read_only=True)
 with open(yaml_f) as file:
     options = yaml.load(file, Loader=yaml.FullLoader)
 
+options['net']['network'] = ['UW', 'PB', 'CC']
+options['net']['station'] = ['EDM', 'B201', 'REM']
+
 options['co']['subdivision'] = {
     'corr_inc': 3600,
     'corr_len': 3600,
@@ -41,7 +44,7 @@ options['co']['subdivision'] = {
     'delete_subdivision': False}
 
 options['co']['remove_response'] = True
-options['co']['preprocess_subdiv'] = True
+options['co']['preprocess_subdiv'] = False
 
 for method in ['autoComponents', 'betweenComponents']:
     options['co']['combination_method'] = method

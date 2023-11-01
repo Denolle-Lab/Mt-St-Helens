@@ -37,8 +37,8 @@ with open(yaml_f) as file:
 
 # These are the analogue stations. Make sure to compute once after the split
 # time and once before the split time
-nets = ['CC'] + ['UW']*11
-stats = ['SEP', 'CDF', 'EDM', 'HSR', 'FL2', 'HSR', 'JUN', 'SOS', 'SUG', 'SHW', 'STD', 'YEL']
+nets = ['UW']*11
+stats = ['CDF', 'EDM', 'HSR', 'FL2', 'HSR', 'JUN', 'SOS', 'SUG', 'SHW', 'STD', 'YEL']
 combs = compute_network_station_combinations(nets, stats)
 unwanted_combs = [f'{unet}.{ustat}.h5' for unet, ustat in zip(combs[0], combs[1])]
 
@@ -53,7 +53,7 @@ psize = comm.Get_size()
 rank = comm.Get_rank()
 
 for fmin in freqmins:
-    if fmin != 1:
+    if fmin == 1:
         continue
     infolder_now = glob.glob(infolder.format(freqmin=fmin, freqmax=2*fmin))[0]
 
