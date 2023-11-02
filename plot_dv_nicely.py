@@ -70,7 +70,6 @@ def plot_dv(infile, outfolder, t_P, Pc, latv, lonv):
     # get the pgv
     otimes, pgvs = compute_pgv_for_dvv(dv)
     otimes = [ot.datetime for ot in otimes]
-    t_P = [t.datetime for t in t_P]
     # Get the confining pressure
     cp = extract_confining_pressure(dv, latv, lonv, Pc)
     # make a two tile subplot, lower tile for the confining pressure
