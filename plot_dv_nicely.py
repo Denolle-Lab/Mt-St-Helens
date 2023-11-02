@@ -8,7 +8,7 @@
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Thursday, 2nd November 2023 11:52:25 am
-Last Modified: Thursday, 2nd November 2023 05:03:49 pm
+Last Modified: Thursday, 2nd November 2023 05:05:00 pm
 '''
 
 import os
@@ -158,7 +158,7 @@ def get_confining_pressure():
     """
     years = np.arange(1993, 2024)
     try:
-        data = np.load(pressure_data, allow_pickle=True)
+        data = np.load(pressure_data)
         # time vector
         latv = data['latv']
         lonv = data['lonv']
