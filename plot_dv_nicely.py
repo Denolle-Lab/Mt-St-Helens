@@ -8,7 +8,7 @@
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Thursday, 2nd November 2023 11:52:25 am
-Last Modified: Thursday, 2nd November 2023 03:09:19 pm
+Last Modified: Thursday, 2nd November 2023 03:32:27 pm
 '''
 
 from math import erfc
@@ -155,8 +155,10 @@ def compute_confining_pressure(
         for r in depths:
             # diffusion
             func = r/np.sqrt(4.*c*(i-X)*dt)
-            b = np.sum(vals * erfc(func))
-            pore_pressure[r, i] = b
+            for ii in range(vals.shape[0]):
+                for jj in range(vals.shape[1]):
+                    b = np.sum(vals[ii, jj] * erfc(func))
+                    pore_pressure[r, i, ii, jj] = b
 
     # remember, we are actually looking at changes
     snow_pressure = np.zeros_like(load)
