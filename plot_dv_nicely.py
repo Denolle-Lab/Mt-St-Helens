@@ -8,9 +8,10 @@
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Thursday, 2nd November 2023 11:52:25 am
-Last Modified: Thursday, 2nd November 2023 02:02:46 pm
+Last Modified: Thursday, 2nd November 2023 03:00:44 pm
 '''
 
+from math import erfc
 import os
 import glob
 from datetime import datetime, timedelta
@@ -38,37 +39,86 @@ mseeds = '/data/wsd01/st_helens_peter/aux_data/mseeds_pgv'
 invdir = '/data/wsd01/st_helens_peter/inventory'
 pgvfiles = '/data/wsd01/st_helens_peter/aux_data/pgvs/{net}.{sta}.{cha}.npz'
 gribfile = '/data/wsd01/st_helens_peter/aux_data/climate data/larger_area/{measure}{year}.grib'
+pressure_data = '/data/wsd01/st_helens_peter/aux_data/climate data/larger_area/pressure_data.npz'
 
 
-for infolder in infolders:
-    if 'fig' in infolder:
-        continue
-    outfolder = infolder + '_fig_nice'
-    os.makedirs(outfolder, exist_ok=True)
-    for infile in glob.glob(os.path.join(infolder, '*.npz')):
-        plot_dv(infile, outfolder)
+def main():
+    for infolder in infolders:
+        if 'fig' in infolder:
+            continue
+        outfolder = infolder + '_fig_nice'
+        os.makedirs(outfolder, exist_ok=True)
+        # get the confining pressure data
+        t_P, latv, lonv, confining_pressure, _, _, _ = get_confining_pressure()
+        for infile in glob.glob(os.path.join(infolder, '*.npz')):
+            plot_dv(infile, outfolder, t_P, confining_pressure, latv, lonv)
 
 
-
-
-
-
-def plot_dv(infile, outfolder):
-    dv = read_dv(infile)
-    outfile = os.path.join(outfolder, f'{dv.stats.id}.png')
-    if os.path.isfile(outfile):
-        return
-    # get the pgv
-    otimes, pgvs = compute_pgv_for_dvv(dv)
-    # get the weather data
+def plot_dv(infile, outfolder, t_P, Pc, latv, lonv):
     try:
-        fig, ax = dv.plot(style='publication', return_ax=True,
-                    dateformat='%b %y')
+        dv = read_dv(infile)
+        outfile = os.path.join(outfolder, f'{dv.stats.id}.png')
+        if os.path.isfile(outfile):
+            return
+        # get the pgv
+        otimes, pgvs = compute_pgv_for_dvv(dv)
+        # Get the confining pressure
+        cp = extract_confining_pressure(dv, latv, lonv, Pc)
+        # make a two tile subplot, lower tile for the confining pressure
+        # We plot the pgvs in the upper tile (same as dv)
+        fig, ax = plt.subplots(2, 1, sharex=True, figsize=(8, 6))
+        # plot the dv
+        dv.plot(style='publication', ax=ax[0], dateformat='%b %y')
+        # plot the pgvs
+        ax[0].twinx().bar(otimes, pgvs, 'r.', ms=2)
+        ax[1].plot(t_P, cp, 'k')
+        ax[1].set_ylabel('Confining pressure [Pa]')
         fig.savefig(outfile, dpi=300, bbox_inches='tight')
         plt.close(fig)
-    except ValueError as e:
+    except Exception as e:
         print(e)
 
+
+def extract_confining_pressure(dv: DV, latv, lonv, confining_pressure):
+    # Find out whether we have a cross-correlation or a self-correlation
+    if dv.stats.stla == dv.stats.evla and dv.stats.stlo == dv.stats.evlo:
+        return extract_confing_pressure_for_coords(
+            dv.stats.stla, dv.stats.stlo, latv, lonv, confining_pressure)
+    # Otherwise average for the two stations involved
+    cp0 = extract_confing_pressure_for_coords(
+        dv.stats.stla, dv.stats.stlo, latv, lonv, confining_pressure)
+    cp1 = extract_confing_pressure_for_coords(
+        dv.stats.evla, dv.stats.evlo, latv, lonv, confining_pressure)
+    cp = (cp0 + cp1)/2
+    return cp
+
+
+def extract_confing_pressure_for_coords(
+        lat, lon, latv, lonv, confining_pressure):
+    # get the closest lat and lon
+    lati = np.argmin(np.abs(latv-lat))
+    loni = np.argmin(np.abs(lonv-lon))
+    # get the confining pressure
+    cp = confining_pressure[:, lati, loni]
+    return cp
+
+
+def get_confining_pressure():
+    try:
+        data = np.load(pressure_data)
+        return data['t'], data['latv'], data['lonv'], data['confining_pressure'],\
+            data['snow_pressure'], data['pore_pressure'], data['depths']
+    except FileNotFoundError:
+        pass
+    snowmelt, snowfall, snow_depth, precip, latv, lonv = retrieve_weather_data()
+    t, latv, lonv, confining_pressure, snow_pressure, pore_pressure, depths =\
+        compute_confining_pressure(
+            snowmelt, snowfall, snow_depth, precip, latv, lonv)
+    np.savez(pressure_data, t=t, latv=latv, lonv=lonv,
+             confining_pressure=confining_pressure,
+             snow_pressure=snow_pressure, pore_pressure=pore_pressure,
+             depths=depths)
+    return t, latv, lonv, confining_pressure, snow_pressure, pore_pressure, depths
 
 
 def compute_confining_pressure(
@@ -80,9 +130,37 @@ def compute_confining_pressure(
     t = np.array(
         [datetime(int(years[0]), 1, 1) + i*timedelta(days=1) for i in range(snowmelt.shape[0])])
     water_influx = snowmelt + precip  # in m
-    load = water_influx * 1000 * 9.81  # in N/m^2
+    load = np.zeros_like(water_influx)
+    # does the diff here make any sense?
+    load[1:] = np.diff(water_influx * 1000) * 9.81  # in N/m^2
+    # Compute pore pressure changes
+    c = 1.  # diffusion coefficient in m^2/s
+    dt = 86400.
+    # depth in m
+    # this should be frequency dependent?
+    dmin = 1000
+    dmax = 8000
+    dstep = 500
+    depths = np.arange(dmin, dmax+dstep, dstep)
+    # depth dependent pore pressure, add a fourth dimension
+    # as a reminder: load is time x lat x lon
+    pore_pressure = np.zeros((len(depths), *load.shape))
+    for i in range(len(load)):
+        X = np.arange(i)
+        vals = load[i]
+        for r in depths:
+            # diffusion
+            func = r/np.sqrt(4.*c*(i-X)*dt)
+            b = np.sum(vals * erfc(func))
+            pore_pressure[r, i] = b
 
-
+    # remember, we are actually looking at changes
+    snow_pressure = np.zeros_like(load)
+    # snow_depth is giving in m water equivalent
+    snow_pressure[1:] = np.diff(snow_depth * 1000) * 9.81
+    # again, this is the confining pressure change
+    confining_pressure = snow_pressure - np.mean(pore_pressure, axis=0)
+    return t, latv, lonv, confining_pressure, snow_pressure, pore_pressure, depths
 
 
 def retrieve_weather_data():
