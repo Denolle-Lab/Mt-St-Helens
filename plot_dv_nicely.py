@@ -8,7 +8,7 @@
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Thursday, 2nd November 2023 11:52:25 am
-Last Modified: Thursday, 2nd November 2023 03:07:48 pm
+Last Modified: Thursday, 2nd November 2023 03:09:19 pm
 '''
 
 from math import erfc
@@ -62,6 +62,8 @@ def plot_dv(infile, outfolder, t_P, Pc, latv, lonv):
             return
         # get the pgv
         otimes, pgvs = compute_pgv_for_dvv(dv)
+        otimes = [ot.datetime for ot in otimes]
+        t_P = [t.datetime for t in t_P]
         # Get the confining pressure
         cp = extract_confining_pressure(dv, latv, lonv, Pc)
         # make a two tile subplot, lower tile for the confining pressure
