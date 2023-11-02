@@ -8,10 +8,9 @@
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Thursday, 2nd November 2023 11:52:25 am
-Last Modified: Thursday, 2nd November 2023 03:32:27 pm
+Last Modified: Thursday, 2nd November 2023 03:37:41 pm
 '''
 
-from math import erfc
 import os
 import glob
 from datetime import datetime, timedelta
@@ -23,6 +22,7 @@ from obspy import Stream, Inventory, UTCDateTime, read, read_inventory,\
 from obspy.signal.filter import envelope
 from obspy.clients.fdsn import Client, header
 import pygrib
+from scipy.special import erf, erfc
 
 from seismic.monitor.dv import read_dv, DV
 from seismic.utils.miic_utils import resample_or_decimate
