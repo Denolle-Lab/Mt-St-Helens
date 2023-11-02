@@ -8,7 +8,7 @@
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Thursday, 2nd November 2023 11:52:25 am
-Last Modified: Thursday, 2nd November 2023 03:00:44 pm
+Last Modified: Thursday, 2nd November 2023 03:01:35 pm
 '''
 
 from math import erfc
@@ -46,7 +46,7 @@ def main():
     for infolder in infolders:
         if 'fig' in infolder:
             continue
-        outfolder = infolder + '_fig_nice'
+        outfolder = infolder + '_fig_pgv_Pc'
         os.makedirs(outfolder, exist_ok=True)
         # get the confining pressure data
         t_P, latv, lonv, confining_pressure, _, _, _ = get_confining_pressure()
