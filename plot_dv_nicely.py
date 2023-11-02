@@ -1,5 +1,19 @@
+'''
+:copyright:
+   The PyGLImER development team (makus@gfz-potsdam.de).
+:license:
+   EUROPEAN UNION PUBLIC LICENCE Version 1.2
+   (https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12)
+:author:
+   Peter Makus (makus@gfz-potsdam.de)
+
+Created: Thursday, 2nd November 2023 11:52:25 am
+Last Modified: Thursday, 2nd November 2023 02:02:46 pm
+'''
+
 import os
 import glob
+from datetime import datetime, timedelta
 
 from matplotlib import pyplot as plt
 import numpy as np
@@ -23,6 +37,7 @@ evts = '/data/wsd01/st_helens_peter/aux_data/evts_mag2.xml'
 mseeds = '/data/wsd01/st_helens_peter/aux_data/mseeds_pgv'
 invdir = '/data/wsd01/st_helens_peter/inventory'
 pgvfiles = '/data/wsd01/st_helens_peter/aux_data/pgvs/{net}.{sta}.{cha}.npz'
+gribfile = '/data/wsd01/st_helens_peter/aux_data/climate data/larger_area/{measure}{year}.grib'
 
 
 for infolder in infolders:
@@ -32,6 +47,10 @@ for infolder in infolders:
     os.makedirs(outfolder, exist_ok=True)
     for infile in glob.glob(os.path.join(infolder, '*.npz')):
         plot_dv(infile, outfolder)
+
+
+
+
 
 
 def plot_dv(infile, outfolder):
@@ -49,6 +68,47 @@ def plot_dv(infile, outfolder):
         plt.close(fig)
     except ValueError as e:
         print(e)
+
+
+
+def compute_confining_pressure(
+        snowmelt, snowfall, snow_depth, precip, latv, lonv):
+    # check that all the shapes are the same
+    assert snowmelt.shape == snowfall.shape == snow_depth.shape == precip.shape
+    years = np.arange(1993, 2024)
+    # time vector
+    t = np.array(
+        [datetime(int(years[0]), 1, 1) + i*timedelta(days=1) for i in range(snowmelt.shape[0])])
+    water_influx = snowmelt + precip  # in m
+    load = water_influx * 1000 * 9.81  # in N/m^2
+
+
+
+
+def retrieve_weather_data():
+    years = np.arange(1993, 2024)
+    snowmelts = []
+    snowdepths = []
+    snowfalls = []
+    precips = []
+    for year in years:
+        snowmelt, latv, lonv = open_grib(
+            f'../climate data/larger_area/snowmelt{year}.grib')
+        snowmelts.append(snowmelt)
+        snowfall, latv, lonv = open_grib(
+            f'../climate data/larger_area/snowfall_{year}.grib')
+        snowfalls.append(snowfall)
+        snow_depth, latv, lonv = open_grib(
+            f'../climate data/larger_area/snow_depth_{year}.grib')
+        snowdepths.append(snow_depth)
+        precip, latv, lonv = open_grib(
+            f'../climate data/larger_area/precip_{year}.grib')
+        precips.append(precip)
+    snowmelt = np.vstack(snowmelts)
+    snowfall = np.vstack(snowfalls)
+    snow_depth = np.vstack(snowdepths)
+    precip = np.vstack(precips)
+    return snowmelt, snowfall, snow_depth, precip, latv, lonv
 
 
 def compute_pgv_for_dvv(dvv: DV):
@@ -182,3 +242,18 @@ def get_data_around_utc(
     if save_inv:
         inv.write(invfile, format='STATIONXML')
     return st, inv
+
+
+def open_grib(gribfile: str):
+    grbs = pygrib.open(gribfile)
+    # This should be a time series on axis 0
+    grb = grbs.select()
+    data = np.array([g.values for g in grb])
+    # Latitude and longitude grid
+    lat, lon = grb[0].latlons()
+    # make those vectors
+    latv = lat[:, 0]
+    lonv = lon[0, :]
+    if np.all(lonv>180):
+        lonv -= 360
+    return data, latv, lonv
