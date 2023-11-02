@@ -8,7 +8,7 @@
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Thursday, 2nd November 2023 11:52:25 am
-Last Modified: Thursday, 2nd November 2023 03:37:41 pm
+Last Modified: Thursday, 2nd November 2023 04:02:08 pm
 '''
 
 import os
@@ -16,6 +16,7 @@ import glob
 from datetime import datetime, timedelta
 
 from matplotlib import pyplot as plt
+from mpi4py import MPI
 import numpy as np
 from obspy import Stream, Inventory, UTCDateTime, read, read_inventory,\
     read_events
@@ -43,6 +44,9 @@ pressure_data = '/data/wsd01/st_helens_peter/aux_data/climate data/larger_area/p
 
 
 def main():
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
     for infolder in infolders:
         if 'fig' in infolder:
             continue
@@ -50,7 +54,10 @@ def main():
         os.makedirs(outfolder, exist_ok=True)
         # get the confining pressure data
         t_P, latv, lonv, confining_pressure, _, _, _ = get_confining_pressure()
-        for infile in glob.glob(os.path.join(infolder, '*.npz')):
+        for ii, infile in enumerate(
+                glob.glob(os.path.join(infolder, '*.npz'))):
+            if ii % size != rank:
+                continue
             plot_dv(infile, outfolder, t_P, confining_pressure, latv, lonv)
 
 
@@ -84,6 +91,24 @@ def plot_dv(infile, outfolder, t_P, Pc, latv, lonv):
 
 
 def extract_confining_pressure(dv: DV, latv, lonv, confining_pressure):
+    """
+    Extract the confining pressure for the coordinates of the station
+    that was used to compute the dv (time series)
+    If two stations were used, average the confining pressure for the
+    two stations.
+    
+    :param dv: velocity change file
+    :type dv: DV
+    :param latv: latitude vector for confining pressure grid
+    :type latv: np.ndarray
+    :param lonv: longitude vector for confining pressure grid
+    :type lonv: np.ndarray
+    :param confining_pressure: confining pressure grid in Pa
+    :type confining_pressure: np.ndarray
+    :return: confining pressure for coordinates of the stations that were
+        used to compute the dv (time series)
+    :rtype: np.ndarray
+    """
     # Find out whether we have a cross-correlation or a self-correlation
     if dv.stats.stla == dv.stats.evla and dv.stats.stlo == dv.stats.evlo:
         return extract_confing_pressure_for_coords(
@@ -99,6 +124,23 @@ def extract_confining_pressure(dv: DV, latv, lonv, confining_pressure):
 
 def extract_confing_pressure_for_coords(
         lat, lon, latv, lonv, confining_pressure):
+    """
+    Extract the confining pressure time-series for the requested coordinates.
+
+    :param lat: requested latitude
+    :type lat: float
+    :param lon: requested longitude
+    :type lon: float
+    :param latv: Latitude vector of the confining pressure grid
+    :type latv: np.ndarray
+    :param lonv: Longitude vector of the confining pressure grid
+    :type lonv: np.ndarray
+    :param confining_pressure: confining pressure grid
+    :type confining_pressure: np.ndarray
+    :return: confining pressure at the requested coordinates
+    :rtype: np.ndarray
+    """
+
     # get the closest lat and lon
     lati = np.argmin(np.abs(latv-lat))
     loni = np.argmin(np.abs(lonv-lon))
@@ -108,13 +150,21 @@ def extract_confing_pressure_for_coords(
 
 
 def get_confining_pressure():
+    """
+    Load confining pressure from disk or compute it from the weather data.
+
+    :return: time vector, latitude vector, longitude vector, confining pressure
+    :rtype: np.ndarray, np.ndarray, np.ndarray, np.ndarray
+    """
     try:
         data = np.load(pressure_data)
-        return data['t'], data['latv'], data['lonv'], data['confining_pressure'],\
+        return data['t'], data['latv'], data['lonv'], \
+            data['confining_pressure'], \
             data['snow_pressure'], data['pore_pressure'], data['depths']
     except FileNotFoundError:
         pass
-    snowmelt, snowfall, snow_depth, precip, latv, lonv = retrieve_weather_data()
+    snowmelt, snowfall, snow_depth, precip, latv, \
+        lonv = retrieve_weather_data()
     t, latv, lonv, confining_pressure, snow_pressure, pore_pressure, depths =\
         compute_confining_pressure(
             snowmelt, snowfall, snow_depth, precip, latv, lonv)
@@ -122,17 +172,38 @@ def get_confining_pressure():
              confining_pressure=confining_pressure,
              snow_pressure=snow_pressure, pore_pressure=pore_pressure,
              depths=depths)
-    return t, latv, lonv, confining_pressure, snow_pressure, pore_pressure, depths
+    return t, latv, lonv, confining_pressure, snow_pressure, pore_pressure, \
+        depths
 
 
 def compute_confining_pressure(
         snowmelt, snowfall, snow_depth, precip, latv, lonv):
+    """
+    Compute the confining pressure from the weather data for a grid.
+    (4D time series)
+
+    :param snowmelt: Snow melt in m/d
+    :type snowmelt: np.ndarray
+    :param snowfall: Snow fall in m/d
+    :type snowfall: np.ndarray
+    :param snow_depth: Snow depth in m
+    :type snow_depth: np.ndarray
+    :param precip: Precipitation in m/d
+    :type precip: np.ndarray
+    :param latv: latitude vector of the grids
+    :type latv: np.ndarray
+    :param lonv: longitude vector of the grids
+    :type lonv: np.ndarray
+    :return: time vector, latitude vector, longitude vector, confining pressure
+    :rtype: np.ndarray, np.ndarray, np.ndarray, np.ndarray
+    """
     # check that all the shapes are the same
     assert snowmelt.shape == snowfall.shape == snow_depth.shape == precip.shape
     years = np.arange(1993, 2024)
     # time vector
     t = np.array(
-        [datetime(int(years[0]), 1, 1) + i*timedelta(days=1) for i in range(snowmelt.shape[0])])
+        [datetime(int(years[0]), 1, 1) + i*timedelta(days=1) for i in range(
+            snowmelt.shape[0])])
     water_influx = snowmelt + precip  # in m
     load = np.zeros_like(water_influx)
     # does the diff here make any sense?
@@ -166,10 +237,17 @@ def compute_confining_pressure(
     snow_pressure[1:] = np.diff(snow_depth * 1000, axis=0) * 9.81
     # again, this is the confining pressure change
     confining_pressure = snow_pressure - np.mean(pore_pressure, axis=0)
-    return t, latv, lonv, confining_pressure, snow_pressure, pore_pressure, depths
+    return t, latv, lonv, confining_pressure, snow_pressure, pore_pressure, \
+        depths
 
 
 def retrieve_weather_data():
+    """
+    open weather data from disk.
+
+    :return: _description_
+    :rtype: _type_
+    """
     years = np.arange(1993, 2024)
     snowmelts = []
     snowdepths = []
@@ -196,6 +274,17 @@ def retrieve_weather_data():
 
 
 def compute_pgv_for_dvv(dvv: DV):
+    """
+    Compute the peak ground velocity for a dvv file. Either from one station
+    or the average of the two stations used in the cross correlationj.
+    Default uses all events with magnitude > 2 in the vicinity of Mount
+    St Helens.
+
+    :param dvv: velocity change file
+    :type dvv: DV
+    :return: time vector, peak ground velocity
+    :rtype: np.ndarray, np.ndarray
+    """
     cat = get_events()
     # Find out whether we have a cross-correlation or a self-correlation
     if dvv.stats.network.split('-')[0] + dvv.stats.station.split('-')[0] ==\
@@ -220,6 +309,20 @@ def compute_pgv_for_dvv(dvv: DV):
 
 
 def compute_pgv_for_station_and_evts(net: str, sta: str, cha: str, cat):
+    """
+    Compute the peak ground velocity for a station and a list of events.
+
+    :param net: Network Code
+    :type net: str
+    :param sta: Station Code
+    :type sta: str
+    :param cha: Channel Code
+    :type cha: str
+    :param cat: List of events
+    :type cat: obspy.core.event.Catalog
+    :return: time vector, peak ground velocity
+    :rtype: np.ndarray, np.ndarray
+    """
     try:
         out = np.load(
             pgvfiles.format(net=net, sta=sta, cha=cha[:-1]))
@@ -247,6 +350,14 @@ def compute_pgv_for_station_and_evts(net: str, sta: str, cha: str, cat):
 
 
 def get_events(evtfile=evts):
+    """
+    Get the events from disk or download them from IRIS.
+
+    :param evtfile: location of event file, defaults to evts
+    :type evtfile: str | os.pathlike, optional
+    :return: List of events
+    :rtype: obspy.core.event.Catalog
+    """
     try:
         cat = read_events(evtfile)
     except FileNotFoundError:
@@ -265,6 +376,16 @@ def download_events():
 
 
 def compute_pgv(st: Stream, inv: Inventory) -> float:
+    """
+    Compute the peak ground velocity for a stream.
+
+    :param st: seismic data
+    :type st: Stream
+    :param inv: inventory
+    :type inv: Inventory
+    :return: peak ground velocity
+    :rtype: float
+    """
     # Check whether data was clipped
     env = []
     for tr in st:
