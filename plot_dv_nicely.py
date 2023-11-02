@@ -8,7 +8,7 @@
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Thursday, 2nd November 2023 11:52:25 am
-Last Modified: Thursday, 2nd November 2023 05:05:00 pm
+Last Modified: Thursday, 2nd November 2023 05:09:34 pm
 '''
 
 import os
@@ -66,6 +66,9 @@ def plot_dv(infile, outfolder, t_P, Pc, latv, lonv):
     dv = read_dv(infile)
     outfile = os.path.join(outfolder, f'{dv.stats.id}.png')
     if os.path.isfile(outfile):
+        return
+    # don't compute for data that has a low correlation coefficient
+    if np.where(dv.corr < 0.5)[0].size > 0.6*np.where(dv.avail)[0].size:
         return
     # get the pgv
     otimes, pgvs = compute_pgv_for_dvv(dv)
