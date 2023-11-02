@@ -8,7 +8,7 @@
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Thursday, 2nd November 2023 11:52:25 am
-Last Modified: Thursday, 2nd November 2023 04:51:09 pm
+Last Modified: Thursday, 2nd November 2023 05:03:49 pm
 '''
 
 import os
@@ -156,22 +156,30 @@ def get_confining_pressure():
     :return: time vector, latitude vector, longitude vector, confining pressure
     :rtype: np.ndarray, np.ndarray, np.ndarray, np.ndarray
     """
+    years = np.arange(1993, 2024)
     try:
         data = np.load(pressure_data, allow_pickle=True)
-        return data['t'], data['latv'], data['lonv'], \
-            data['confining_pressure'], \
-            data['snow_pressure'], data['pore_pressure'], data['depths']
+        # time vector
+        latv = data['latv']
+        lonv = data['lonv']
+        confining_pressure = data['confining_pressure']
+        snow_pressure = data['snow_pressure']
+        pore_pressure = data['pore_pressure']
+        depths = data['depths']
     except FileNotFoundError:
         pass
     snowmelt, snowfall, snow_depth, precip, latv, \
         lonv = retrieve_weather_data()
-    t, latv, lonv, confining_pressure, snow_pressure, pore_pressure, depths =\
+    latv, lonv, confining_pressure, snow_pressure, pore_pressure, depths =\
         compute_confining_pressure(
             snowmelt, snowfall, snow_depth, precip, latv, lonv)
-    np.savez(pressure_data, t=t, latv=latv, lonv=lonv,
+    np.savez(pressure_data, latv=latv, lonv=lonv,
              confining_pressure=confining_pressure,
              snow_pressure=snow_pressure, pore_pressure=pore_pressure,
              depths=depths)
+    t = np.array(
+        [datetime(int(years[0]), 1, 1) + i*timedelta(days=1) for i in range(
+            snowmelt.shape[0])])
     return t, latv, lonv, confining_pressure, snow_pressure, pore_pressure, \
         depths
 
@@ -199,12 +207,7 @@ def compute_confining_pressure(
     """
     # check that all the shapes are the same
     assert snowmelt.shape == snowfall.shape == snow_depth.shape == precip.shape
-    years = np.arange(1993, 2024)
-    # time vector
-    t = np.array(
-        [datetime(int(years[0]), 1, 1) + i*timedelta(days=1) for i in range(
-            snowmelt.shape[0])])
-    water_influx = snowmelt + precip  # in m
+    water_influx = snowmelt + precip - snowfall  # in m
     load = np.zeros_like(water_influx)
     # does the diff here make any sense?
     load[1:] = np.diff(water_influx * 1000, axis=0) * 9.81  # in N/m^2
@@ -237,7 +240,7 @@ def compute_confining_pressure(
     snow_pressure[1:] = np.diff(snow_depth * 1000, axis=0) * 9.81
     # again, this is the confining pressure change
     confining_pressure = snow_pressure - np.mean(pore_pressure, axis=0)
-    return t, latv, lonv, confining_pressure, snow_pressure, pore_pressure, \
+    return latv, lonv, confining_pressure, snow_pressure, pore_pressure, \
         depths
 
 
