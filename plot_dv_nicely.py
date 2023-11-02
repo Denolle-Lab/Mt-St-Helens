@@ -8,7 +8,7 @@
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Thursday, 2nd November 2023 11:52:25 am
-Last Modified: Thursday, 2nd November 2023 04:02:08 pm
+Last Modified: Thursday, 2nd November 2023 04:51:09 pm
 '''
 
 import os
@@ -300,11 +300,15 @@ def compute_pgv_for_dvv(dvv: DV):
             dvv.stats.network.split('-')[1], dvv.stats.station.split('-')[1],
             dvv.stats.channel.split('-')[1], cat)
         # Find the times that are in both lists
+        otimes0 = [ot.datetime for ot in otimes0]
+        otimes1 = [ot.datetime for ot in otimes1]
         otimes = list(set(otimes0).intersection(otimes1))
+        otimes.sort()
         pgvs = []
         for ot in otimes:
             pgvs.append(
                 (pgvs0[otimes0.index(ot)] + pgvs1[otimes1.index(ot)])/2)
+        otimes = [UTCDateTime(ot) for ot in otimes]
     return otimes, pgvs
 
 
