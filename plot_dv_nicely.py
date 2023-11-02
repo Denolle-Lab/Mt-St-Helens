@@ -8,7 +8,7 @@
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Thursday, 2nd November 2023 11:52:25 am
-Last Modified: Thursday, 2nd November 2023 03:01:35 pm
+Last Modified: Thursday, 2nd November 2023 03:07:48 pm
 '''
 
 from math import erfc
@@ -70,7 +70,9 @@ def plot_dv(infile, outfolder, t_P, Pc, latv, lonv):
         # plot the dv
         dv.plot(style='publication', ax=ax[0], dateformat='%b %y')
         # plot the pgvs
-        ax[0].twinx().bar(otimes, pgvs, 'r.', ms=2)
+        ax[0].twinx().bar(otimes, pgvs, width=.1, alpha=.5, color='red')
+        # put a label on the twin axis
+        ax[0].twinx().set_ylabel('PGV [m/s]')
         ax[1].plot(t_P, cp, 'k')
         ax[1].set_ylabel('Confining pressure [Pa]')
         fig.savefig(outfile, dpi=300, bbox_inches='tight')
