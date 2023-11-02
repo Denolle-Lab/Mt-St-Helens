@@ -62,32 +62,32 @@ def main():
 
 
 def plot_dv(infile, outfolder, t_P, Pc, latv, lonv):
-    try:
-        dv = read_dv(infile)
-        outfile = os.path.join(outfolder, f'{dv.stats.id}.png')
-        if os.path.isfile(outfile):
-            return
-        # get the pgv
-        otimes, pgvs = compute_pgv_for_dvv(dv)
-        otimes = [ot.datetime for ot in otimes]
-        t_P = [t.datetime for t in t_P]
-        # Get the confining pressure
-        cp = extract_confining_pressure(dv, latv, lonv, Pc)
-        # make a two tile subplot, lower tile for the confining pressure
-        # We plot the pgvs in the upper tile (same as dv)
-        fig, ax = plt.subplots(2, 1, sharex=True, figsize=(8, 6))
-        # plot the dv
-        dv.plot(style='publication', ax=ax[0], dateformat='%b %y')
-        # plot the pgvs
-        ax[0].twinx().bar(otimes, pgvs, width=.1, alpha=.5, color='red')
-        # put a label on the twin axis
-        ax[0].twinx().set_ylabel('PGV [m/s]')
-        ax[1].plot(t_P, cp, 'k')
-        ax[1].set_ylabel('Confining pressure [Pa]')
-        fig.savefig(outfile, dpi=300, bbox_inches='tight')
-        plt.close(fig)
-    except Exception as e:
-        print(e)
+    # try:
+    dv = read_dv(infile)
+    outfile = os.path.join(outfolder, f'{dv.stats.id}.png')
+    if os.path.isfile(outfile):
+        return
+    # get the pgv
+    otimes, pgvs = compute_pgv_for_dvv(dv)
+    otimes = [ot.datetime for ot in otimes]
+    t_P = [t.datetime for t in t_P]
+    # Get the confining pressure
+    cp = extract_confining_pressure(dv, latv, lonv, Pc)
+    # make a two tile subplot, lower tile for the confining pressure
+    # We plot the pgvs in the upper tile (same as dv)
+    fig, ax = plt.subplots(2, 1, sharex=True, figsize=(8, 6))
+    # plot the dv
+    dv.plot(style='publication', ax=ax[0], dateformat='%b %y')
+    # plot the pgvs
+    ax[0].twinx().bar(otimes, pgvs, width=.1, alpha=.5, color='red')
+    # put a label on the twin axis
+    ax[0].twinx().set_ylabel('PGV [m/s]')
+    ax[1].plot(t_P, cp, 'k')
+    ax[1].set_ylabel('Confining pressure [Pa]')
+    fig.savefig(outfile, dpi=300, bbox_inches='tight')
+    plt.close(fig)
+    # except Exception as e:
+    #     print(e)
 
 
 def extract_confining_pressure(dv: DV, latv, lonv, confining_pressure):
@@ -157,7 +157,7 @@ def get_confining_pressure():
     :rtype: np.ndarray, np.ndarray, np.ndarray, np.ndarray
     """
     try:
-        data = np.load(pressure_data)
+        data = np.load(pressure_data, allow_pickle=True)
         return data['t'], data['latv'], data['lonv'], \
             data['confining_pressure'], \
             data['snow_pressure'], data['pore_pressure'], data['depths']
@@ -344,7 +344,7 @@ def compute_pgv_for_station_and_evts(net: str, sta: str, cha: str, cat):
             pgvs.append(compute_pgv(st, inv))
     np.savez(
         pgvfiles.format(net=net, sta=sta, cha=cha[:-1]),
-        otimes=np.array([ot.format_fissures for ot in otimes_out]),
+        otimes=np.array([ot.format_fissures() for ot in otimes_out]),
         pgvs=np.array(pgvs))
     return otimes_out, pgvs
 
