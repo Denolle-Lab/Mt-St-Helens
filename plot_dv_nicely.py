@@ -152,13 +152,13 @@ def compute_confining_pressure(
     for i in range(len(load)):
         X = np.arange(i)
         vals = load[i]
-        for r in depths:
+        for di, r in enumerate(depths):
             # diffusion
             func = r/np.sqrt(4.*c*(i-X)*dt)
             for ii in range(vals.shape[0]):
                 for jj in range(vals.shape[1]):
                     b = np.sum(vals[ii, jj] * erfc(func))
-                    pore_pressure[r, i, ii, jj] = b
+                    pore_pressure[di, i, ii, jj] = b
 
     # remember, we are actually looking at changes
     snow_pressure = np.zeros_like(load)
