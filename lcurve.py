@@ -18,20 +18,13 @@ freq0 = 0.25
 
 for freq0 in 0.25*2**np.arange(3):
 
-    indir = glob.glob(f'/data/wsd01/st_helens_peter/dv/resp_removed_longtw_final_QCpass_ddt/xstations_{freq0}-{freq0*2}*')
+    # long dvs
+    infiles = glob.glob(f'/data/wsd01/st_helens_peter/dv/new_gap_handling_ddt/*_{freq0}-{freq0*2}_wl432000_*_srw/*.npz')
 
-    # add auto and xcomp
-    indir2 = glob.glob(f'/data/wsd01/st_helens_peter/dv/resp_removed_longtw_final_ddt/autoComponents_{freq0}-{freq0*2}*')
-    indir3 = glob.glob(f'/data/wsd01/st_helens_peter/dv/resp_removed_longtw_final_ddt/betweenComponents_{freq0}-{freq0*2}*')
-    if len(indir) > 1 or len(indir2) > 1 or len(indir3) > 1:
-        raise ValueError('ambiguous directory')
-    indir = indir[0]
-    indir2 = indir2[0]
-    indir3 = indir3[0]
+    # separately for clock shift
+    infiles += glob.glob(f'/data/wsd01/st_helens_peter/dv/dv_separately_ddt/xstations_{freq0}-{freq0*2}_*/*.npz')
 
-    dvs_all = read_dv(os.path.join(indir, '*.npz'))
-    dvs_all.extend(read_dv(os.path.join(indir2, '*.npz')))
-    dvs_all.extend(read_dv(os.path.join(indir3, '*.npz')))
+    dvs_all = read_dv(infiles)
 
     # The maps should be like this
     # old
@@ -50,8 +43,8 @@ for freq0 in 0.25*2**np.arange(3):
 
     # Time-series
     delta = (365.25/2)*24*3600
-    start = UTCDateTime(year=1999, julday=1).timestamp
-    end = UTCDateTime(year=2023, julday=81).timestamp
+    start = UTCDateTime(year=1997, julday=1).timestamp
+    end = UTCDateTime(year=2023, julday=280).timestamp
     times = np.arange(start, end, delta)
 
     # inversion parameters
@@ -61,9 +54,6 @@ for freq0 in 0.25*2**np.arange(3):
     #  Q_s = 2*pi*f*mf_path/v , mf_path = Q_s*v/(2*pi*f)
     mf_path = vel/(2*np.pi*0.0014*3)
     dt = .05 # s  # for the numerical integration
-
-
-    dvs_all = read_dv(os.path.join(indir, 'DV-*-*.*-*.*-*.npz'))
 
     # create grid
     dvg = DVGrid(lat[0], lon[0], res, x, y, dt, vel, mf_path)
@@ -91,7 +81,7 @@ for freq0 in 0.25*2**np.arange(3):
     for std_model in stds:
         for corr_len in corr_lens:
             outdir = os.path.join(
-                '/data/wsd01/st_helens_peter/spatial/tdependent_lcurve_singlecross/')
+                '/data/wsd01/st_helens_peter/spatial/new_gap_handling_tdependent_lcurve_singlecross/')
             os.makedirs(outdir, exist_ok=True)
 
             for utc in times[ind]:

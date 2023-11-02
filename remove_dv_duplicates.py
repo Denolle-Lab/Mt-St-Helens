@@ -21,7 +21,7 @@ import numpy as np
 
 separate_dir_early = '/data/wsd01/st_helens_peter/dv/dv_separately/xstations_{fmin}-{fmax}_1997-06-01'
 separate_dir_late = '/data/wsd01/st_helens_peter/dv/dv_separately/xstations_{fmin}-{fmax}_2013-10-31'
-long_dir = '/data/wsd01/st_helens_peter/dv/new_gap_handling/xstations_td_taper_no_gap_interp_{fmin}-{fmax}_wl432000_*__1b_mute_SW_presmooth30d_srw
+long_dir = '/data/wsd01/st_helens_peter/dv/new_gap_handling/xstations_td_taper_no_gap_interp_{fmin}-{fmax}_wl432000_*__1b_mute_SW_presmooth30d_srw'
 
 freqmins = 1/2**np.arange(3)
 
@@ -46,4 +46,8 @@ for fmin in freqmins:
 
     # If they are in early and late remove them from long
     for f in set_early.intersection(set_late):
-        os.remove(f'{long}/{f}')
+        try:
+            os.remove(f'{long}/{f}')
+        except FileNotFoundError:
+            # then this has already been executed
+            continue

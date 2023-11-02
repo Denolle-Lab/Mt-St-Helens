@@ -11,9 +11,11 @@ from seismic.monitor.dv import read_dv
 # corrupt stations
 # skip = ['NED', 'SEP']
 # cut = ['EDM', 'FL2', 'HSR', 'JUN', 'SHW', 'SOS', 'STD']
-cutend = UTCDateTime(2014, 1, 1)
+# cutend = UTCDateTime(2014, 1, 1)
 
-files = glob.glob('/data/wsd01/st_helens_peter/dv/new_gap_handling/xstations*60d*_srw/*.npz')
+files = glob.glob('/data/wsd01/st_helens_peter/dv/new_gap_handling/*/*.npz')
+files += glob.glob('/data/wsd01/st_helens_peter/dv/dv_separately/*/*.npz')
+
 
 for infile in files:
     # for skipfile in skip:
