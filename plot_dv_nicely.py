@@ -136,7 +136,7 @@ def compute_confining_pressure(
     water_influx = snowmelt + precip  # in m
     load = np.zeros_like(water_influx)
     # does the diff here make any sense?
-    load[1:] = np.diff(water_influx * 1000) * 9.81  # in N/m^2
+    load[1:] = np.diff(water_influx * 1000, axis=0) * 9.81  # in N/m^2
     # Compute pore pressure changes
     c = 1.  # diffusion coefficient in m^2/s
     dt = 86400.
@@ -161,7 +161,7 @@ def compute_confining_pressure(
     # remember, we are actually looking at changes
     snow_pressure = np.zeros_like(load)
     # snow_depth is giving in m water equivalent
-    snow_pressure[1:] = np.diff(snow_depth * 1000) * 9.81
+    snow_pressure[1:] = np.diff(snow_depth * 1000, axis=0) * 9.81
     # again, this is the confining pressure change
     confining_pressure = snow_pressure - np.mean(pore_pressure, axis=0)
     return t, latv, lonv, confining_pressure, snow_pressure, pore_pressure, depths
@@ -175,16 +175,16 @@ def retrieve_weather_data():
     precips = []
     for year in years:
         snowmelt, latv, lonv = open_grib(
-            f'../climate data/larger_area/snowmelt{year}.grib')
+            gribfile.format(measure='snowmelt', year=year))
         snowmelts.append(snowmelt)
         snowfall, latv, lonv = open_grib(
-            f'../climate data/larger_area/snowfall_{year}.grib')
+            gribfile.format(measure='snowfall_', year=year))
         snowfalls.append(snowfall)
         snow_depth, latv, lonv = open_grib(
-            f'../climate data/larger_area/snow_depth_{year}.grib')
+            gribfile.format(measure='snow_depth_', year=year))
         snowdepths.append(snow_depth)
         precip, latv, lonv = open_grib(
-            f'../climate data/larger_area/precip_{year}.grib')
+            gribfile.format(measure='precip_', year=year))
         precips.append(precip)
     snowmelt = np.vstack(snowmelts)
     snowfall = np.vstack(snowfalls)
@@ -339,3 +339,6 @@ def open_grib(gribfile: str):
     if np.all(lonv>180):
         lonv -= 360
     return data, latv, lonv
+
+
+main()

@@ -19,12 +19,13 @@ freq0 = 0.25
 for freq0 in 0.25*2**np.arange(3):
 
     # long dvs
-    infiles = glob.glob(f'/data/wsd01/st_helens_peter/dv/new_gap_handling_ddt/*_{freq0}-{freq0*2}_wl432000_*_srw/*.npz')
+    infiles = f'/data/wsd01/st_helens_peter/dv/new_gap_handling_ddt/*_{freq0}-{freq0*2}_wl432000_*_srw/*.npz'
 
     # separately for clock shift
-    infiles += glob.glob(f'/data/wsd01/st_helens_peter/dv/dv_separately_ddt/xstations_{freq0}-{freq0*2}_*/*.npz')
+    infiles2 = f'/data/wsd01/st_helens_peter/dv/dv_separately_ddt/xstations_{freq0}-{freq0*2}_*/*.npz'
 
     dvs_all = read_dv(infiles)
+    dvs_all += read_dv(infiles2)
 
     # The maps should be like this
     # old
