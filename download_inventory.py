@@ -1,6 +1,6 @@
 from obspy.clients.fdsn import Client
 
-networks = 8*['CC'] + 4*['PB'] + 9*['UW']
+networks = 9*['CC'] + 4*['PB'] + 9*['UW']
 
 stations = [
     'JRO',
@@ -11,6 +11,7 @@ stations = [
     'SWFL',
     'SWF2',
     'VALT',
+    'SEP',
 
     'B201',
     'B202',
@@ -35,7 +36,7 @@ c = Client('IRIS')
 
 for net, stat in zip(networks, stations):
     inv = c.get_stations(
-        network=net, station=stat, channel='?H?', location='*',
+        network='CC', station='SEP', channel='?H?', location='*',
         level='response' 
     )
     inv.write(

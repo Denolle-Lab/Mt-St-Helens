@@ -8,7 +8,7 @@
    Peter Makus (makus@gfz-potsdam.de)
 
 Created: Monday, 6th November 2023 10:40:29 am
-Last Modified: Monday, 6th November 2023 10:52:28 am
+Last Modified: Monday, 6th November 2023 10:55:03 am
 '''
 import os
 import glob
@@ -25,7 +25,7 @@ dv_files += glob.glob('/data/wsd01/st_helens_peter/dv/dv_separately_ddt/*/*/*.np
 for dv_file in dv_files:
     dv = read_dv(dv_file)
     rewrite = False
-    if 'stla' or 'stlo' not in dv.stats:
+    if 'stla' not in dv.stats or 'stlo' not in dv.stats:
         # extract station name
         stat = dv.stats.station.split('-')[0]
         net = dv.stats.network.split('-')[0]
@@ -34,7 +34,7 @@ for dv_file in dv_files:
         dv.stats.stla = inv[0][0].latitude
         dv.stats.stlo = inv[0][0].longitude
         rewrite = True
-    if 'evla' or 'evlo' not in dv.stats:
+    if 'evla' not in dv.stats or 'evlo' not in dv.stats:
         # get coordinates of second station
         stat = dv.stats.station.split('-')[1]
         net = dv.stats.network.split('-')[1]
