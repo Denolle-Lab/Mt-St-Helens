@@ -13,7 +13,7 @@ from seismic.plot.plot_utils import set_mpl_params
 
 # Folder with the dvs
 infiles = '/data/wsd01/st_helens_peter/dv/new_gap_handling/*interp_{freq}-*srw/*.npz'
-infiles2 = '/data/wsd01/st_helens_peter/dv/dv_separately/*/xstations_{freq}-*srw/*.npz'
+infiles2 = '/data/wsd01/st_helens_peter/dv/dv_separately/xstations_{freq}-*srw/*.npz'
 
 outfile = '/data/wsd01/st_helens_peter/dv/new_gap_handling/availability_{freq}.png'
 outnpz = '/data/wsd01/st_helens_peter/dv/new_gap_handling/availability_{freq}.npz'
