@@ -36,8 +36,8 @@ res = 1  # km
 
 # Time-series
 delta = 10*24*3600
-start = UTCDateTime(year=1997, julday=175).timestamp
-end = UTCDateTime(year=2023, julday=81).timestamp
+start = UTCDateTime(year=1997, julday=1).timestamp
+end = UTCDateTime(year=2023, julday=240).timestamp
 times = np.arange(start, end, delta)
 
 # inversion parameters
@@ -49,8 +49,9 @@ mf_path = vel/(2*np.pi*0.0014*3)
 dt = .05 # s  # for the numerical integration
 
 # needs to be thoroughly tested
-corr_len = 2  # km; just a try
-std_model = .064  # 3.2e-2
+# from lcurve criterion
+corr_len = 1  # km; just a try
+std_model = .032  # 3.2e-2
 
 
 
@@ -67,26 +68,24 @@ rank = comm.Get_rank()
 for n in range(3):
     freq0 = 0.25*2**n
 
-    indir = glob.glob(f'/data/wsd01/st_helens_peter/dv/resp_removed_longtw_final_QCpass_ddt/xstations_{freq0}-{freq0*2}*')
+    # long dvs
+    infiles = f'/data/wsd01/st_helens_peter/dv/new_gap_handling_ddt/*_{freq0}-{freq0*2}_wl432000_*_srw/*.npz'
+    if not len(glob.glob(infiles)):
+        raise FileNotFoundError(f'{infiles} contains no files')
 
-    # add auto and xcomp
-    indir2 = glob.glob(f'/data/wsd01/st_helens_peter/dv/resp_removed_longtw_final_ddt/autoComponents_{freq0}-{freq0*2}*')
-    indir3 = glob.glob(f'/data/wsd01/st_helens_peter/dv/resp_removed_longtw_final_ddt/betweenComponents_{freq0}-{freq0*2}*')
-    if len(indir) > 1 or len(indir2) > 1 or len(indir3) > 1:
-        raise ValueError('ambiguous directory')
-    indir = indir[0]
-    indir2 = indir2[0]
-    indir3 = indir3[0]
+    # separately for clock shift
+    infiles2 = f'/data/wsd01/st_helens_peter/dv/dv_separately_ddt/xstations_{freq0}-{freq0*2}_*/*.npz'
+    if not len(glob.glob(infiles2)):
+        raise FileNotFoundError(f'{infiles2} contains no files')
 
-    dvs_all = read_dv(os.path.join(indir, '*.npz'))
-    dvs_all.extend(read_dv(os.path.join(indir2, '*.npz')))
-    dvs_all.extend(read_dv(os.path.join(indir3, '*.npz')))
+    dvs_all = read_dv(infiles)
+    dvs_all += read_dv(infiles2)
 
     # create grid
-    dvgo = DVGrid(lat[0], lon[0], res, x, y, dt, vel, mf_path)
+    dvg = DVGrid(lat[0], lon[0], res, x, y, dt, vel, mf_path)
 
     grids = np.zeros(
-        (len(dvgo.yaxis), len(dvgo.xaxis), len(times)), dtype=np.float64)
+        (len(dvg.yaxis), len(dvg.xaxis), len(times)), dtype=np.float64)
 
 
 
@@ -97,17 +96,28 @@ for n in range(3):
 
 
     outdir = os.path.join(
-        f'/data/wsd01/st_helens_peter/spatial/ddt_crosssingle_cl{corr_len}_std{std_model}_largemap',
+        f'/data/wsd01/st_helens_peter/spatial/new_gap_handling_ddt_crosssingle_cl{corr_len}_std{std_model}_largemap',
         f'{freq0}-{freq0*2}')
     os.makedirs(outdir, exist_ok=True)
 
     # Compute
     sing_counter = 0
     for ii, utc in zip(ind, times[ind]):
-        dvg = deepcopy(dvgo)
+        print(f'working on {UTCDateTime(utc)}.')
         utc = UTCDateTime(utc)
+        # Find available dvs at this time
+        dvs = []
+        ti = []
+        for dv in dvs_all:
+            if utc < dv.stats.corr_start[0] or utc > dv.stats.corr_end[-1]:
+                # this dv is not inside of time series
+                continue
+            tii = np.argmin(abs(np.array(dv.stats.starttime) - utc))
+            if dv.avail[tii]:
+                ti.append(tii)
+                dvs.append(dv)
         try:
-            dvg.compute_dv_grid(dvs_all, utc, res, corr_len, std_model)
+            dvg.compute_dv_grid(dvs, utc, res, corr_len, std_model)
         except IndexError as e:
             print(e)
             grids[:, :, ii] += np.nan
@@ -128,8 +138,8 @@ for n in range(3):
 
     if rank == 0:
         np.savez(
-            os.path.join(outdir, f'dvdt_3D.npz'), dv=grids, xaxis=dvgo.xaxis,
-            yaxis=dvgo.yaxis, taxis=times, statx=dvg.statx, staty=dvg.staty)
+            os.path.join(outdir, f'dvdt_3D.npz'), dv=grids, xaxis=dvg.xaxis,
+            yaxis=dvg.yaxis, taxis=times, statx=dvg.statx, staty=dvg.staty)
         print(f' Number of Singular Matrices encountered {sing_counter}.')
 
     # del grids

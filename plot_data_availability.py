@@ -32,7 +32,7 @@ for freq in 0.25*2**np.arange(3):
     n_avail = np.zeros_like(t)
     for i, t_ in enumerate(t):
         dv_sel = [dv for dv in dvs if (min(dv.stats.corr_start) <= UTCDateTime(t_) and max(dv.stats.corr_start) >= UTCDateTime(t_))]
-        ii = np.argmin([abs(dv.stats.corr_start - UTCDateTime(t_)) for dv in dv_sel])
+        ii = np.argmin([abs(np.array(dv.stats.corr_start) - UTCDateTime(t_)) for dv in dv_sel])
         n_avail[i] = np.sum([dv.avail[ii_] for ii_, dv in zip(ii, dv_sel)])
 
     plt.figure(figsize=(12,9))
