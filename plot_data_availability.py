@@ -23,7 +23,7 @@ set_mpl_params()
 for freq in 0.25*2**np.arange(3):
     dvs = read_dv(infiles.format(freq=freq))
     dvs += read_dv(infiles2.format(freq=freq))
-    t = np.array([dv.stats.corr_start for dv in dvs])
+    t = [dv.stats.corr_start for dv in dvs]
     # find time series with maximum length
     t = t[np.argmax([len(t_) for t_ in t])]
     # convert to datetime
