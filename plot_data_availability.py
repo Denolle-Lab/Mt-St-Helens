@@ -6,20 +6,34 @@ the quality control depnending on time.
 import os
 import numpy as np
 from matplotlib import pyplot as plt
+from obspy import UTCDateTime
 
 from seismic.monitor.dv import read_dv
 from seismic.plot.plot_utils import set_mpl_params
 
 # Folder with the dvs
-infolder = '/data/wsd01/st_helens_peter/dv/resp_removed_longtw_final_QCpass'
+infiles = '/data/wsd01/st_helens_peter/dv/new_gap_handling/*interp_{freq}-*srw/*.npz'
+infiles2 = '/data/wsd01/st_helens_peter/dv/dv_separately/*/xstations_{freq}-*srw/*.npz'
+
+outfile = '/data/wsd01/st_helens_peter/dv/new_gap_handling/availability_{freq}.png'
+outnpz = '/data/wsd01/st_helens_peter/dv/new_gap_handling/availability_{freq}.npz'
+
 
 set_mpl_params()
 for freq in 0.25*2**np.arange(3):
-    indir = os.path.join(
-        infolder, f'xstations_{freq}-{freq*2}*srw')
-    dvs = read_dv(os.path.join(indir, '*.npz'))
-    t = np.array([t.datetime for t in dvs[0].stats.corr_start])
-    n_avail = np.sum([dv.avail.astype(int) for dv in dvs], axis=0)
+    dvs = read_dv(infiles.format(freq=freq))
+    dvs += read_dv(infiles2.format(freq=freq))
+    t = np.array([dv.stats.corr_start for dv in dvs])
+    # find time series with maximum length
+    t = t[np.argmax([len(t_) for t_ in t])]
+    # convert to datetime
+    t = np.array([t_.datetime for t_ in t])
+    # get number of available correlation functions
+    n_avail = np.zeros_like(t)
+    for i, t_ in enumerate(t):
+        dv_sel = [dv for dv in dvs if (min(dv.stats.corr_start) <= UTCDateTime(t_) and max(dv.stats.corr_start) >= UTCDateTime(t_))]
+        ii = np.argmin([abs(dv.stats.corr_start - UTCDateTime(t_)) for dv in dv_sel])
+        n_avail[i] = np.sum([dv.avail[ii_] for ii_, dv in zip(ii, dv_sel)])
 
     plt.figure(figsize=(12,9))
     plt.fill_between(t, n_avail, color='g')
@@ -27,7 +41,7 @@ for freq in 0.25*2**np.arange(3):
     plt.ylim((0, None))
     plt.xlim((min(t), max(t)))
     plt.title(f'available CF {freq}-{freq*2} Hz')
-    plt.savefig(os.path.join(infolder, f'avail_{freq}.png'), dpi=300, facecolor='None')
+    plt.savefig(outfile.format(freq=freq), dpi=300, facecolor='None')
     # save numpy array
-    np.savez(os.path.join(infolder, f'avail_{freq}.npz'), t=t, n=n_avail)
+    np.savez(outnpz.format(freq=freq), t=t, n=n_avail)
     plt.close()
