@@ -19,8 +19,8 @@ from obspy import read_inventory
 from seismic.monitor.dv import read_dv
 
 
-dv_files = glob.glob('/data/wsd01/st_helens_peter/dv/new_gap_handling_ddt/*/*.npz')
-dv_files += glob.glob('/data/wsd01/st_helens_peter/dv/dv_separately_ddt/*/*/*.npz')
+dv_files = glob.glob('/data/wsd01/st_helens_peter/dv/new_gap_handling/*/*.npz')
+dv_files += glob.glob('/data/wsd01/st_helens_peter/dv/dv_separately/*/*/*.npz')
 
 for dv_file in dv_files:
     dv = read_dv(dv_file)
