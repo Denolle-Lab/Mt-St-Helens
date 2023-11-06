@@ -45,7 +45,7 @@ for freq0 in 0.25*2**np.arange(3):
     # Time-series
     delta = (365.25/2)*24*3600
     start = UTCDateTime(year=1997, julday=1).timestamp
-    end = UTCDateTime(year=2023, julday=280).timestamp
+    end = UTCDateTime(year=2023, julday=240).timestamp
     times = np.arange(start, end, delta)
 
     # inversion parameters
@@ -54,7 +54,7 @@ for freq0 in 0.25*2**np.arange(3):
     # According to Gabrielli et al. (2020) Q_S^-1 = 0.0014, for 3 Hz, mfp about 38 km
     #  Q_s = 2*pi*f*mf_path/v , mf_path = Q_s*v/(2*pi*f)
     mf_path = vel/(2*np.pi*0.0014*3)
-    dt = .05 # s  # for the numerical integration
+    dt = .1  # s  # for the numerical integration
 
     # create grid
     dvg = DVGrid(lat[0], lon[0], res, x, y, dt, vel, mf_path)
@@ -86,11 +86,20 @@ for freq0 in 0.25*2**np.arange(3):
             os.makedirs(outdir, exist_ok=True)
 
             for utc in times[ind]:
-                jj = np.where(times==utc)[0][0]
+                print(f'working on {UTCDateTime(utc)}.')
+                jj = np.where(times == utc)[0][0]
                 utc = UTCDateTime(utc)
-                ti = np.argmin(abs(np.array(dvs_all[0].stats.starttime) - utc))
                 # Find available dvs at this time
-                dvs = [dv for dv in dvs_all if dv.avail[ti]]
+                dvs = []
+                ti = []
+                for dv in dvs_all:
+                    if utc < dv.stats.corr_start[0] or utc > dv.stats.corr_end[-1]:
+                        # this dv is not inside of time series
+                        continue
+                    tii = np.argmin(abs(np.array(dv.stats.starttime) - utc))
+                    if dv.avail[tii]:
+                        ti.append(tii)
+                        dvs.append(dv)
                 try:
                     inv = dvg.compute_dv_grid(
                         dvs, utc, res, corr_len, std_model)
@@ -99,9 +108,14 @@ for freq0 in 0.25*2**np.arange(3):
                     continue
                 except np.linalg.LinAlgError as e:
                     print(e)
+                except Exception as e:
+                    print(
+                        f'Could not invert for grid time {utc}.\n',
+                        f'Original error was {e}')
+                    continue
 
-                real = np.array([dv.value[ti] for dv in dvs])
-                corr = np.array([dv.corr[ti] for dv in dvs])
+                real = np.array([dv.value[tii] for dv, tii in zip(dvs, ti)])
+                corr = np.array([dv.corr[tii] for dv, tii in zip(dvs, ti)])
                 pred = dvg.forward_model(inv, dvs=dvs, utc=utc)
 
                 pp = dvs[0].dv_processing
@@ -111,7 +125,9 @@ for freq0 in 0.25*2**np.arange(3):
                     (pp['freq_max'] + pp['freq_min'])/2)
                 residuals[ii, jj] = np.sqrt(np.mean((real - pred)**2/sigma_d**2))
                 model_variances[ii, jj] = np.mean((inv-np.mean(inv))**2)
+                print(f'{UTCDateTime(utc)} done.')
             ii += 1
+            print(f'Finished computation for std {std_model} and clen {corr_len}')
     # gather results
     comm.Allreduce(MPI.IN_PLACE, [residuals, MPI.DOUBLE], op=MPI.SUM)
     comm.Allreduce(MPI.IN_PLACE, [model_variances, MPI.DOUBLE], op=MPI.SUM)
