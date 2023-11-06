@@ -34,11 +34,12 @@ stations = [
 c = Client('IRIS')
 
 
-for net, stat in zip(networks, stations):
-    inv = c.get_stations(
-        network='CC', station='SEP', channel='?H?', location='*',
-        level='response' 
-    )
-    inv.write(
-        f'/data/wsd01/st_helens_peter/inventory/{net}.{stat}.xml',
-        format='STATIONXML')
+# for net, stat in zip(networks, stations):
+net, stat = ('CC', 'SEP')
+inv = c.get_stations(
+    network=net, station=stat, channel='?H?', location='*',
+    level='response' 
+)
+inv.write(
+    f'/data/wsd01/st_helens_peter/inventory/{net}.{stat}.xml',
+    format='STATIONXML')
