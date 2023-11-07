@@ -172,13 +172,14 @@ def get_confining_pressure():
         pass
     snowmelt, snowfall, snow_depth, precip, latv, \
         lonv = retrieve_weather_data()
-    latv, lonv, confining_pressure, snow_pressure, pore_pressure, depths =\
+    latv, lonv, confining_pressure, snow_pressure, pore_pressure, depths, \
+         water_influx, snow_depth =\
         compute_confining_pressure(
             snowmelt, snowfall, snow_depth, precip, latv, lonv)
     np.savez(pressure_data, latv=latv, lonv=lonv,
              confining_pressure=confining_pressure,
              snow_pressure=snow_pressure, pore_pressure=pore_pressure,
-             depths=depths)
+             depths=depths, water_influx=water_influx, snow_depth=snow_depth)
     t = np.array(
         [datetime(int(years[0]), 1, 1) + i*timedelta(days=1) for i in range(
             snowmelt.shape[0])])
@@ -214,7 +215,7 @@ def compute_confining_pressure(
     # does the diff here make any sense?
     load[1:] = np.diff(water_influx * 1000, axis=0) * 9.81  # in N/m^2
     # Compute pore pressure changes
-    c = 1.  # diffusion coefficient in m^2/s
+    c = .3  # diffusion coefficient in m^2/s
     dt = 86400.
     # depth in m
     # this should be frequency dependent?
@@ -243,7 +244,7 @@ def compute_confining_pressure(
     # again, this is the confining pressure change
     confining_pressure = snow_pressure - np.mean(pore_pressure, axis=0)
     return latv, lonv, confining_pressure, snow_pressure, pore_pressure, \
-        depths
+        depths, water_influx, snow_depth
 
 
 def retrieve_weather_data():
@@ -296,7 +297,7 @@ def compute_pgv_for_dvv(dvv: DV):
             dvv.stats.network.split('-')[1] + dvv.stats.station.split('-')[1]:
         otimes, pgvs = compute_pgv_for_station_and_evts(
             dvv.stats.network.split('-')[0], dvv.stats.station.split('-')[0],
-            dvv.stats.channel.split('-'), cat)
+            dvv.stats.channel.split('-')[0], cat)
     else:
         otimes0, pgvs0 = compute_pgv_for_station_and_evts(
             dvv.stats.network.split('-')[0], dvv.stats.station.split('-')[0],
@@ -346,8 +347,12 @@ def compute_pgv_for_station_and_evts(net: str, sta: str, cha: str, cat):
     pgvs = []
     otimes_out = []
     for ot in otimes:
-        st, inv = get_data_around_utc(
-            ot, net, sta, cha, mseeddir=mseeds, invdir=invdir)
+        try:
+            st, inv = get_data_around_utc(
+                ot, net, sta, cha, mseeddir=mseeds, invdir=invdir)
+        except header.FDSNBadRequestException:
+            print(f'Bad FDSN request exception for {net}.{sta}.{cha} and {ot}')
+            st = Stream()
         if st:
             otimes_out.append(ot)
             pgvs.append(compute_pgv(st, inv))

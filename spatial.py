@@ -42,7 +42,7 @@ times = np.arange(start, end, delta)
 
 # inversion parameters
 # geo-parameters
-vel = 2  # km/s
+vel = 2.5  # km/s, Ulberg et al. (2020)
 # According to Gabrielli et al. (2020) Q_S^-1 = 0.0014, for 3 Hz, mfp about 38 km
 #  Q_s = 2*pi*f*mf_path/v , mf_path = Q_s*v/(2*pi*f)
 mf_path = vel/(2*np.pi*0.0014*3)
@@ -50,8 +50,8 @@ dt = .05 # s  # for the numerical integration
 
 # needs to be thoroughly tested
 # from lcurve criterion
-corr_len = 1  # km; just a try
-std_model = .032  # 3.2e-2
+corr_len = 4  # km; just a try
+std_model = .004  # 3.2e-2
 
 
 
@@ -113,7 +113,8 @@ for n in range(3):
                 # this dv is not inside of time series
                 continue
             tii = np.argmin(abs(np.array(dv.stats.starttime) - utc))
-            if dv.avail[tii]:
+            # Consider adding a corr threshold here? Discard everything below .5?
+            if dv.avail[tii] and dv.corr[tii] > .5:
                 ti.append(tii)
                 dvs.append(dv)
         try:

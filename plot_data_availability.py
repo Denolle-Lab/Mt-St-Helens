@@ -32,16 +32,15 @@ for freq in 0.25*2**np.arange(3):
     n_avail = np.zeros_like(t)
     for i, t_ in enumerate(t):
         dv_sel = [dv for dv in dvs if (min(dv.stats.corr_start) <= UTCDateTime(t_) and max(dv.stats.corr_start) >= UTCDateTime(t_))]
-        ii = np.argmin([abs(np.array(dv.stats.corr_start) - UTCDateTime(t_)) for dv in dv_sel])
-        n_avail[i] = np.sum([dv.avail[ii_] for ii_, dv in zip(ii, dv_sel)])
-
+        ii = [np.argmin(abs(np.array(dv.stats.corr_start) - UTCDateTime(t_))) for dv in dv_sel]
+        n_avail[i] = np.sum(np.array([dv.avail[ii_] for ii_, dv in zip(ii, dv_sel)]).astype(int))
+    np.savez(outnpz.format(freq=freq), t=t, n=n_avail)
     plt.figure(figsize=(12,9))
+    
     plt.fill_between(t, n_avail, color='g')
     plt.ylabel(r'$N_{CF}$')
     plt.ylim((0, None))
     plt.xlim((min(t), max(t)))
     plt.title(f'available CF {freq}-{freq*2} Hz')
     plt.savefig(outfile.format(freq=freq), dpi=300, facecolor='None')
-    # save numpy array
-    np.savez(outnpz.format(freq=freq), t=t, n=n_avail)
     plt.close()

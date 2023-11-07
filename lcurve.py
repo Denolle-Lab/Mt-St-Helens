@@ -50,7 +50,7 @@ for freq0 in 0.25*2**np.arange(3):
 
     # inversion parameters
     # geo-parameters
-    vel = 2  # km/s
+    vel = 2.5  # km/s, Ulberg et al. (2020)
     # According to Gabrielli et al. (2020) Q_S^-1 = 0.0014, for 3 Hz, mfp about 38 km
     #  Q_s = 2*pi*f*mf_path/v , mf_path = Q_s*v/(2*pi*f)
     mf_path = vel/(2*np.pi*0.0014*3)
@@ -68,15 +68,15 @@ for freq0 in 0.25*2**np.arange(3):
     ind = pmap == rank
     ind = np.arange(len(times), dtype=int)[ind]
 
-
     # Computations for L-curve criterion, bi-yearly should be more than sufficient
     corr_lens = np.hstack((0.5, np.arange(1, 6, 1)))
-    stds = [2e-3*(4**n) for n in range(4)]
-    stds = np.hstack((stds, 0.064))
+    stds = [5e-4*(2**n) for n in range(10)]
+    stds = np.hstack((stds, 0.064, 0.016))
 
 
     residuals = np.zeros((len(stds)*len(corr_lens), len(times)))
     model_variances = np.zeros_like(residuals)
+    dvv = None  # actual velocity change-change time-series
 
     ii = 0
     for std_model in stds:
@@ -97,7 +97,8 @@ for freq0 in 0.25*2**np.arange(3):
                         # this dv is not inside of time series
                         continue
                     tii = np.argmin(abs(np.array(dv.stats.starttime) - utc))
-                    if dv.avail[tii]:
+                    # 7.11.23 don't use low coherence for L-curve
+                    if dv.avail[tii] and dv.corr[tii] >= 0.5:
                         ti.append(tii)
                         dvs.append(dv)
                 try:
@@ -124,18 +125,24 @@ for freq0 in 0.25*2**np.arange(3):
                     (pp['tw_start'], pp['tw_len'] + pp['tw_start']),
                     (pp['freq_max'] + pp['freq_min'])/2)
                 residuals[ii, jj] = np.sqrt(np.mean((real - pred)**2/sigma_d**2))
+                # residuals[ii, jj] = np.sqrt(np.mean((real - pred)**2))
                 model_variances[ii, jj] = np.mean((inv-np.mean(inv))**2)
+                if dvv is None:
+                    dvv = np.zeros((*residuals.shape, *inv.shape))
+                dvv[ii, jj] = inv
                 print(f'{UTCDateTime(utc)} done.')
             ii += 1
             print(f'Finished computation for std {std_model} and clen {corr_len}')
     # gather results
     comm.Allreduce(MPI.IN_PLACE, [residuals, MPI.DOUBLE], op=MPI.SUM)
     comm.Allreduce(MPI.IN_PLACE, [model_variances, MPI.DOUBLE], op=MPI.SUM)
+    comm.Allreduce(MPI.IN_PLACE, [dvv, MPI.DOUBLE], op=MPI.SUM)
 
 
     if rank == 0:
         np.savez(
             os.path.join(outdir, f'Lcurve_{freq0}.npz'),
             model_variances=model_variances, residual=residuals,
+            vel_change=dvv,
             times=times, corr_len=np.tile(corr_lens, len(stds)),
             std_model=np.hstack([[std]*len(corr_lens) for std in stds]))
