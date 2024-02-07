@@ -35,7 +35,7 @@ def preprocessing(year,jday, net, sta, cha):
 #                 starttime=UTC,endtime=UTC+86400)
         st = client.get_waveforms(network=net, station=sta, channel=cha,
                                        year='{}'.format(year), doy='{}'.format(jday))
-        stream.resample(50)
+        st.resample(50)
 
         st.detrend('linear')
         st.taper(max_percentage=None,max_length=5, type='hann') #max_length in sec
@@ -92,7 +92,37 @@ def RSAM(data, samp_rate, datas, freq, Nm, N):
     filtered_data = abs(filtered_data[:Nm])
     datas.append(filtered_data.reshape(-1,N).mean(axis=-1)*1.e9)
     return(datas)
-    
+
+def VSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N):
+    # compute ratio between different velocities
+    data -= np.mean(data) # detrend('mean')
+    j = freqs_names.index('mf')
+    mfd = obspy.signal.filter.bandpass(data, freqs[j][0], freqs[j][1], samp_rate)
+    mfd = abs(mfd[:Nm])
+    mfd = mfd.reshape(-1,N).mean(axis=-1)
+    j = freqs_names.index('hf')
+    hfd = obspy.signal.filter.bandpass(data, freqs[j][0], freqs[j][1], samp_rate)
+    hfd = abs(hfd[:Nm])
+    hfd = hfd.reshape(-1,N).mean(axis=-1)
+    vsar = mfd/hfd
+    datas.append(vsar)
+    return(datas)
+
+def lhVSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N):
+    # compute ratio between different velocities
+    data -= np.mean(data) # detrend('mean')
+    j = freqs_names.index('rsam')
+    mfd = obspy.signal.filter.bandpass(data, freqs[j][0], freqs[j][1], samp_rate)
+    mfd = abs(mfd[:Nm])
+    mfd = mfd.reshape(-1,N).mean(axis=-1)
+    j = freqs_names.index('hf')
+    hfd = obspy.signal.filter.bandpass(data, freqs[j][0], freqs[j][1], samp_rate)
+    hfd = abs(hfd[:Nm])
+    hfd = hfd.reshape(-1,N).mean(axis=-1)
+    vsar = mfd/hfd
+    datas.append(vsar)
+    return(datas)
+
 def DSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N):
     # compute dsar
     data = scipy.integrate.cumtrapz(data, dx=1./100, initial=0) # vel to disp
@@ -147,63 +177,75 @@ def nDSAR(datas):
     datas.append(ndsar)
     return(datas)
     
-# creates a df for each trace and append this df to a daily df
 def create_df(datas, ti, freqs_names, df):
     datas = np.array(datas)
     time = [(ti+j*600).datetime for j in range(datas.shape[1])]
-    df_tr = pd.DataFrame(zip(*datas), columns=freqs_names, index=pd.Series(time))
+    df_tr = pd.DataFrame(zip(*datas), columns=freqs_names+['rms','rmes','pgv','pga'], index=pd.Series(time))
     df = pd.concat([df, df_tr])
-    return(df)    
+    return(df)   
     
 # main function..............................................................................
-def freq_bands_taper(jday, year, net, sta, cha):   
+def freq_bands(jday, year, netstacha):   
     ''' 
     calculate and store power in 10 min long time windows for different frequency bands
     sensor measured ground velocity
     freqs: list contains min and max frequency in Hz
     dsar: float represents displacement (integration of)'''
     
-    start_time = time.time()
-    freqs_names = ['rsam','mf','hf','dsar']
-    df = pd.DataFrame(columns=freqs_names)
-    daysec = 24*3600
-    freqs = [[2,5], [4.5,8], [8,16]]
+    net = netstacha.split('-')[0]
+    sta = netstacha.split('-')[1]
+    cha = netstacha.split('-')[2]
     
-    st = preprocessing(year,jday, net, sta, cha)
+    file_path = '/data/wsd03/data_manuela/MtStHelens/RSAM_DSAR/{}/{}/'.format(year, sta)
+    file_name = '{}_{}.csv'.format(sta,jday)
+        
+    if os.path.isfile(file_path+file_name):
+        print('file for {}-{} at {} already exist'.format(year,jday, netstacha))
+        pass
+    else:    
+        start_time = time.time()
+        freqs_names = ['rsam','mf','hf','dsar','ldsar', 'lhdsar', 'vsar', 'lhvsar']
+        df = pd.DataFrame(columns=freqs_names)
+        daysec = 24*3600
+        freqs = [[2,5], [4.5,8], [8,16]]
 
-    if len(st)>0: # if stream not empty
-#         st.resample(50)
-        for tr in st:
-#         tr = st[0]
-            datas = []
-            data = tr.data
-            samp_rate = tr.meta['sampling_rate']
-            ti = tr.meta['starttime']
-            # round start time to nearest 10 min increment
-            tiday = obspy.UTCDateTime("{:d}-{:02d}-{:02d} 00:00:00".format(ti.year, ti.month, ti.day)) # date
-            ti = tiday+int(np.round((ti-tiday)/600))*600 # nearest 10 min to starttime
-            N = int(600*samp_rate)    # 10 minute windows in seconds
-            Nm = int(N*np.floor(len(data)/N)) # np.floor rounds always to the smaller number
-            # seconds per day (86400) * sampling rate (100) -> datapoints per day
+        st = preprocessing(year,jday, net, sta, cha)
 
-            for freq, frequ_name in zip(freqs, freqs_names[:3]):
-                datas = RSAM(data, samp_rate, datas, freq, Nm, N) # get RSAM for different frequency bands
+        if len(st)>0: # if stream not empty
+            for tr in st:
+    #         tr = st[0]
+                datas = []
+                data = tr.data
+                samp_rate = tr.meta['sampling_rate']
+                ti = tr.meta['starttime']
+                # round start time to nearest 10 min increment
+                tiday = obspy.UTCDateTime("{:d}-{:02d}-{:02d} 00:00:00".format(ti.year, ti.month, ti.day)) # date
+                ti = tiday+int(np.round((ti-tiday)/600))*600 # nearest 10 min to starttime
+                N = int(600*samp_rate)    # 10 minute windows in seconds
+                Nm = int(N*np.floor(len(data)/N)) # np.floor rounds always to the smaller number
+                # seconds per day (86400) * sampling rate (100) -> datapoints per day
+
+                for freq, frequ_name in zip(freqs, freqs_names[:3]):
+                    datas = RSAM(data, samp_rate, datas, freq, Nm, N) # get RSAM for different frequency bands
 
                 datas = DSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N)
                 datas = lDSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N)
                 datas = lhDSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N)
                 datas = VSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N)
                 datas = lhVSAR(data, samp_rate, datas, freqs_names, freqs, Nm, N)
-#             datas = nDSAR(datas) # --> add ndsar in freqs_names
+    #             datas = nDSAR(datas) # --> add ndsar in freqs_names
 
-#             noise_analysis(data, N, Nm, samp_rate)
+                datas = noise_analysis(data, datas, samp_rate, N, Nm)
 
-            df = create_df(datas, ti, freqs_names, df)
-        
-        if not os.path.exists('/data/whd02/MtStHelens_manuela/RSAM_DSAR/{}/{}'.format(year, sta)):
-            os.makedirs('/data/whd02/MtStHelens_manuela/RSAM_DSAR/{}/{}'.format(year, sta))
-        df.to_csv('/data/whd02/MtStHelens_manuela/RSAM_DSAR/{}/{}/{}_{}.csv'.format(year,sta,sta,jday), index=True, index_label='time')
-        print('One day tooks {} seconds.'.format(round(time.time()-start_time),3))
+                df = create_df(datas, ti, freqs_names, df)
+            
+            if not os.path.exists(file_path):
+                os.makedirs(file_path)
+                
+            df.to_csv(file_path + file_name, index=True, index_label='time')
+            print('One day tooks {} seconds.'.format(round(time.time()-start_time),3))
+        else:
+            print('empty stream station {} day {}'.format(sta,jday))
     return()
 
 
@@ -247,8 +289,7 @@ for year in range(1980,1980+1):
         p.join()
         print('Calculation tooks {} seconds.'.format(round(time.time()-stime),3))
 
-#--> python RSAM_DSAR.py 2004 2 3 'UW' 'EDM' 'EHZ'
-#--> python RSAM_DSAR.py 1 366
+#--> python RSAM_DSAR_displacement.py 1 366
 
 # calculate frequencie bands AND save stream
 # single processing -----------------------------------------------------------------------------
