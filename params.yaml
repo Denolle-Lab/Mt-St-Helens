@@ -1,8 +1,11 @@
+# The parameter file to be used with SeisMIC
+
 #### Project wide parameters
 # lowest level project directory
-proj_dir : '/data/wsd01/st_helens_peter'
+proj_dir : '/path/to/your/seismic/database'
 # directory for logging information
 log_subdir : 'log'
+save_comps_separately: True
 # levels:
 # 'DEBUG', 'INFO', 'WARNING', 'ERROR', or 'CRITICAL'
 log_level: 'WARNING'
@@ -19,6 +22,7 @@ net:
 
 #### parameters for correlation (emperical Green's function creation)
 co:
+    # because response has already been removed before
     # subdirectory of 'proj_dir' to store correlation
     # type: string
     subdir : 'corr_response_removed'
@@ -26,8 +30,8 @@ co:
     # These should be long enough for the reference (e.g. the standard
     # deviation) to be rather independent of the parts to remove
     # type: string
-    read_start : '1997-06-01 00:00:01.0'
-    read_end : '2023-03-15 23:59:59.0'
+    read_start : '1998-01-01 00:00:01.0'
+    read_end : '2023-09-15 23:59:59.0'
     # type: float [seconds]
     # The longer the faster, but higher RAM usage.
     # Note that this is also the length of the correlation batches
@@ -39,7 +43,7 @@ co:
     # New sampling rate in Hz. Note that it will try to decimate
     # if possible (i.e., there is an integer factor from the
     # native sampling_rate)
-    sampling_rate : 25
+    sampling_rate : 5
     # Remove the instrument response, will take substantially more time
     remove_response : True
 
@@ -56,19 +60,10 @@ co:
     # these function work on an obspy.Stream object given as first argument
     # and return an obspy.Stream object.
     preProcessing : [
-                    {'function':'seismic.correlate.preprocessing_stream.detrend_st',
-                    'args':{'type':'linear'}},
-                    {'function':'seismic.correlate.preprocessing_stream.cos_taper_st',
-                      'args':{'taper_len': 60, # seconds
-                              'lossless': True}},
                     {'function':'seismic.correlate.preprocessing_stream.stream_filter',
                       'args':{'ftype':'bandpass',
                               'filter_option':{'freqmin':0.01, #0.01
-                                               'freqmax':12}}}
-                     #{'function':'seismic.correlate.preprocessing_stream.stream_mute',
-                     # 'args':{'taper_len':100,
-                     #         'mute_method':'std_factor',
-                     #         'mute_value':3}}
+                                               'freqmax':2.5}}}
                     ]
     # subdivision of the read sequences for correlation
     # if this is set the stream processing will happen on the hourly subdivision. This has the
@@ -93,31 +88,10 @@ co:
 
     # parameters for correlation preprocessing
     # Standard functions reside in seismic.correlate.preprocessing_td
-    corr_args : {'TDpreProcessing':[
-                                    {'function':'seismic.correlate.preprocessing_td.detrend',
-                                    'args':{'type':'linear'}},
-                                   {'function':'seismic.correlate.preprocessing_td.TDfilter',
-                                   'args':{'type':'bandpass','freqmin':2,'freqmax':8}},
-                                    #{'function':'seismic.correlate.preprocessing_td.mute',
-                                    # 'args':{'taper_len':100.,
-                                           # 'threshold':1000, absolute threshold
-                                    #         'std_factor':3,
-                                    #         'filter':{'type':'bandpass','freqmin':2,'freqmax':4},
-                                    #         'extend_gaps':True}},
-                                   {'function':'seismic.correlate.preprocessing_td.clip',
-                                    'args':{'std_factor':2.5}},
-                                   {'function':'seismic.correlate.preprocessing_td.signBitNormalization',
-                                    'args': {}}
-                                   ],
+    # are set within the scripts
+    corr_args : {'TDpreProcessing':[],
                   # Standard functions reside in seismic.correlate.preprocessing_fd
-                 'FDpreProcessing':[
-                                    {'function':'seismic.correlate.preprocessing_fd.spectralWhitening',
-                                     'args':{'joint_norm':False}},
-                                    {'function':'seismic.correlate.preprocessing_fd.FDfilter',
-                                     'args':{'flimit':[0.01,0.02,9,10]}}
-                                    #  {'function':seismic.correlate.preprocessing_fd.FDsignBitNormalization,
-                                    # 'args':{}}
-                                    ],
+                 'FDpreProcessing':[],
                  'lengthToSave':100,
                  'center_correlation':True,      # make sure zero correlation time is in the center
                  'normalize_correlation':True,
@@ -131,13 +105,14 @@ dv:
     subdir : 'vel_change'
 
     # Plotting
-    plot_vel_change : True
+    plot_vel_change : False
 
     ### Definition of calender time windows for the time difference measurements
     start_date : '1997-06-01 00:00:01.0'   # %Y-%m-%dT%H:%M:%S.%fZ'
-    end_date : '2023-03-15 23:59:59.0'
-    win_len : 86400                         # length of window in which EGFs are stacked
-    date_inc : 43200                        # increment of measurements
+    end_date : '2023-09-01 23:59:59.0'
+    win_len : 432000                        # length of window in which EGFs are stacked
+    date_inc : 432000                        # increment of measurements
+    return_sim_mat : True
 
     ### Frequencies
     freq_min : 4
@@ -148,7 +123,7 @@ dv:
     tw_len : 60       # length of window [s]
     sides : 'both'   # options are left (for acausal), right (causal), both, or single (for active source experiments where the first sample is the trigger time)
     compute_tt : True  # Computes the travel time and adds it to tw_start (tt is 0 if not xstations). If true a rayleigh wave velocity has to be provided
-    rayleigh_wave_velocity : 2  # rayleigh wave velocity in km/s, will be ignored if compute_tt=False
+    rayleigh_wave_velocity : 2.5  # rayleigh wave velocity in km/s, will be ignored if compute_tt=False
     
     ### Range to try stretching
     stretch_range : 0.025
@@ -164,7 +139,7 @@ dv:
 
     # preprocessing on the correlation bulk before stretch estimation
     preprocessing: [
-                    {'function': 'smooth', 'args': {'wsize': 48, 'wtype': 'hanning', 'axis': 1}}
+                    {'function': 'smooth', 'args': {'wsize': 12, 'wtype': 'hanning', 'axis': 1}}
     ]
 
     # postprocessing of dv objects before saving and plotting
