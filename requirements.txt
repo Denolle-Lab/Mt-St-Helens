@@ -1,14 +1,11 @@
-#
-# Just the requirements sorted by the different codes
-
-# plot_stations.ipynb requires
+matplotlib
+mpi4py
+numpy
 pandas
+pygrib
 pygmt
-
-# download_data. py requires
-SeisMIC  # retrievable on https://github.com/PeterMakus/SeisMIC or via pip install
+python >= 3.10
 obspy
+scipy
+seismic>=0.5.22  # retrievable on https://github.com/PeterMakus/SeisMIC or via pip install
 
-# get_data_cascadia.py requires
-obspy
-pwnstor # retrievable at https://github.com/niyiyu/pnwstore

@@ -1,16 +1,23 @@
-# Mt-St-Helens
+# Electronic Supplement to "Analysing Volcanic, Tectonic, and Environmental Influences on the Seismic Velocity from 25 Years of Data at Mount St. Helens"
 
-In this repository, we will just collect code that we use for the different steps of noise analysis in Mt St Helens.
+This repository contains a somewhat lose collection of scripts and jupyter notebooks to reproduce the results from Makus et al., 2024 (currently in review).
 
-**Open tasks are in `Milestones` and `Issues`**
+Packages required for the scripts are listed in ``requirements.txt``.
 
-## When you commit to this repo, make sure that
-+ Your code is somewhat understandable
-+ Add the required packages to the  `requirements.txt`
+## Scripts and Notebooks
+Not all (though most) scripts need to be run, to obtain results. In general, all jupyter notebooks (file ending ``.ipynb``), containing plotting and data interpretataion. Python scripts (file ending ``.py``) contain the computation scripts
 
-## Information on Computing dv/v
-To compute dv/v, Peter uses SeisMIC (the code he's written). Head to the [GitHub repository](https://github.com/PeterMakus/SeisMIC) and the [documentation](https://petermakus.github.io/SeisMIC/) for information on installation and how to use. You can also ask me, whenever something comes up (or open an issue in said repository).
+### How to run scripts
+Many of the scripts support mpi (i..e, multi-threading).
+You can run them as follows:
 
-## How to use Git and GitHub
-[**Nice Cheat Sheet**](https://i.redd.it/8341g68g1v7y.png)
-For GitHub itself, you will find a lot of tutorials on the GitHub help pages.
+```bash
+mpirun -n $n_cores python python_script.py
+```
+
+### Order to run the scripts in
+All files start with a two-digit number indicating the order that they have to be ran in.
+
+
+To compute dv/v, SeisMIC is used. Head to the [GitHub repository](https://github.com/PeterMakus/SeisMIC) and the [documentation](https://petermakus.github.io/SeisMIC/) for information on installation and how to use. You can also ask me, whenever something comes up (or open an issue in said repository).
+

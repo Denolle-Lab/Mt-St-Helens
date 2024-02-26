@@ -30,8 +30,8 @@ co:
     # These should be long enough for the reference (e.g. the standard
     # deviation) to be rather independent of the parts to remove
     # type: string
-    read_start : '1997-06-01 00:00:01.0'
-    read_end : '2023-09-01 23:59:59.0'
+    read_start : '1998-01-01 00:00:01.0'
+    read_end : '2023-09-15 23:59:59.0'
     # type: float [seconds]
     # The longer the faster, but higher RAM usage.
     # Note that this is also the length of the correlation batches
@@ -110,9 +110,9 @@ dv:
     ### Definition of calender time windows for the time difference measurements
     start_date : '1997-06-01 00:00:01.0'   # %Y-%m-%dT%H:%M:%S.%fZ'
     end_date : '2023-09-01 23:59:59.0'
-    win_len : 86400                         # length of window in which EGFs are stacked
-    date_inc : 43200                        # increment of measurements
-    return_sim_mat : False
+    win_len : 432000                        # length of window in which EGFs are stacked
+    date_inc : 432000                        # increment of measurements
+    return_sim_mat : True
 
     ### Frequencies
     freq_min : 4
@@ -139,7 +139,7 @@ dv:
 
     # preprocessing on the correlation bulk before stretch estimation
     preprocessing: [
-                    {'function': 'smooth', 'args': {'wsize': 48, 'wtype': 'hanning', 'axis': 1}}
+                    {'function': 'smooth', 'args': {'wsize': 12, 'wtype': 'hanning', 'axis': 1}}
     ]
 
     # postprocessing of dv objects before saving and plotting
