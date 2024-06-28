@@ -1,0 +1,16 @@
+MtStHelens_activity/*.pdf
+MtStHelens_activity/StaLta/
+noise_analysis/first_test/
+noise_analysis/noise_plots/
+noise_analysis/sensor_response_tests/
+noise_analysis/spectrogram/
+noise_analysis/spectrum/
+RSAM_DSAR/plots/
+RSAM_DSAR/data/
+RSAM_DSAR/whakaari/
+*.png
+*.mseed
+*.txt
+*DS_Store
+*__pycache__*
+*.ipynb_checkpoints*
